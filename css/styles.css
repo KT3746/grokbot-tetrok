@@ -846,3 +846,34 @@ body.theme-pixel .combo-badge {
 @media (prefers-reduced-motion: reduce) {
   .combo-badge { animation: none; }
 }
+
+
+/* === Feel v39 === */
+.float-best {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: rgba(148, 163, 184, 0.95);
+}
+.float-best strong {
+  font-size: 0.68rem;
+  color: #cbd5e1;
+  text-shadow: none;
+}
+#stat-score-float.is-record {
+  color: #fde68a !important;
+  text-shadow: 0 0 14px rgba(250, 204, 21, 0.7) !important;
+  animation: recordGlow 0.8s ease-in-out infinite alternate;
+}
+@keyframes recordGlow {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.2); }
+}
+body.theme-magma #stat-score-float.is-record { color: #fdba74 !important; }
+body.theme-crt #stat-score-float.is-record { color: #ffc933 !important; }
+body.theme-pixel .float-best strong { font-family: "Press Start 2P", monospace; font-size: 0.45rem; }
+@media (prefers-reduced-motion: reduce) {
+  #stat-score-float.is-record { animation: none; }
+}
