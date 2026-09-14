@@ -104,6 +104,7 @@ const els = {
   linesFloat: document.getElementById("stat-lines-float"),
   comboFloat: document.getElementById("stat-combo-float"),
   comboWrap: document.getElementById("combo-float"),
+  bestFloat: document.getElementById("stat-best-float"),
   board: document.getElementById("board"),
   hold: document.getElementById("hold"),
   next: document.getElementById("next"),
@@ -303,6 +304,8 @@ if (els.layoutPicker) {
 
 
 let best = readBest();
+let hudScoreShown = 0;
+let hudScoreAnim = 0;
 let tutorialOpen = false;
 let tutorialStep = 0;
 let tutorialTimer = 0;
@@ -312,6 +315,7 @@ const game = new Game({
   onScore: syncHud,
   onStart: () => {
     hideOverlay();
+    hudScoreShown = game.score;
     syncHud();
   },
   onPause: () => {
@@ -327,9 +331,9 @@ const game = new Game({
     els.btnPause.setAttribute("aria-pressed", "false");
     (function(){const pl=els.btnPause.querySelector(".btn-label"); if(pl) pl.textContent="Pausa";})();
   },
-  onLock: ({ hard }) => {
+  onLock: ({ hard, piece, dropCells, fromY }) => {
     if (!hard) audio.lock();
-    renderer.spawnLock(Boolean(hard));
+    renderer.spawnLock(Boolean(hard), piece, dropCells || 0, fromY);
   },
   onRotate: () => audio.rotate(),
   onHold: () => {
@@ -494,6 +498,17 @@ function loop(now) {
     game.tick(dt);
     renderer.stepFx(dt);
     layoutIfNeeded();
+    // placar sobe suave
+    if (hudScoreShown < game.score) {
+      const gap = game.score - hudScoreShown;
+      hudScoreShown += Math.max(1, Math.ceil(gap * Math.min(1, dt / 120)));
+      if (hudScoreShown > game.score) hudScoreShown = game.score;
+      if (els.scoreFloat) els.scoreFloat.textContent = String(hudScoreShown);
+      if (els.score) els.score.textContent = String(hudScoreShown);
+      if (els.scoreRail) els.scoreRail.textContent = String(hudScoreShown);
+    } else if (hudScoreShown > game.score) {
+      hudScoreShown = game.score;
+    }
     try { renderer.syncMinis(); } catch (_) {}
     renderer.draw(game);
   } catch (err) {
@@ -532,6 +547,13 @@ function syncHud() {
     const c = game.combo || 0;
     els.comboFloat.textContent = c > 1 ? `x${c}` : "";
     if (els.comboWrap) els.comboWrap.hidden = c <= 1;
+  }
+  if (els.bestFloat) els.bestFloat.textContent = String(best || 0);
+  // destaque se bateu recorde na partida
+  if (els.scoreFloat && best > 0 && game.score >= best) {
+    els.scoreFloat.classList.add("is-record");
+  } else if (els.scoreFloat) {
+    els.scoreFloat.classList.remove("is-record");
   }
   const empty = !game.hold;
   if (els.holdSlot) els.holdSlot.classList.toggle("is-empty", empty);
@@ -592,9 +614,14 @@ function finishHowTo() {
 }
 
 function showStart() {
-  showOverlay("TETROK", "", false);
+  showOverlay("TETROK", best > 0 ? `Recorde: ${best}` : "Encaixe. Limpe. Suba de nível.", false);
   els.btnPlay.textContent = "Jogar!";
-  els.overlayScore.hidden = true;
+  if (best > 0) {
+    els.overlayScore.hidden = false;
+    els.overlayScore.innerHTML = `<span>Recorde</span><strong>${best}</strong><span>Meta</span><strong>${Math.ceil(best * 1.25)}</strong>`;
+  } else {
+    els.overlayScore.hidden = true;
+  }
   if (els.themePicker) els.themePicker.hidden = false;
   if (els.layoutPicker) els.layoutPicker.hidden = false;
   if (els.btnHomeOverlay) els.btnHomeOverlay.hidden = true;
