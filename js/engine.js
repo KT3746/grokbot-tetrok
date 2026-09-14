@@ -192,6 +192,10 @@ export class Game {
       b2b: this.b2b,
       lastClearLabel: this.lastClearLabel,
       canHold: this.canHold,
+      grounded: this.grounded,
+      lockRatio: this.grounded && this.active
+        ? Math.min(1, this.lockMs / LOCK_DELAY_MS)
+        : 0,
     };
   }
 
@@ -222,13 +226,14 @@ export class Game {
 
   hardDrop() {
     if (!this.isLive() || !this.active) return 0;
+    const fromY = this.active.y;
     let cells = 0;
     while (this.applyMove(0, 1)) cells += 1;
     if (cells > 0) {
       this.score += cells * 2;
       this.hooks.onScore?.(this.snapshot());
     }
-    this.lockPiece(true);
+    this.lockPiece(true, { dropCells: cells, fromY });
     return cells;
   }
 
@@ -306,10 +311,16 @@ export class Game {
     }
   }
 
-  lockPiece(fromHardDrop) {
+  lockPiece(fromHardDrop, extra = {}) {
     if (!this.active || this.state !== STATE.PLAYING) return;
+    const piece = { ...this.active };
     this.board = mergePiece(this.board, this.active);
-    this.hooks.onLock?.({ hard: fromHardDrop, piece: this.active });
+    this.hooks.onLock?.({
+      hard: fromHardDrop,
+      piece,
+      dropCells: extra.dropCells || 0,
+      fromY: extra.fromY ?? piece.y,
+    });
     this.active = null;
     this.lockMs = 0;
     this.lockResets = 0;
