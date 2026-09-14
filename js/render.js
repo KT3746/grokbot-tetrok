@@ -1,4 +1,4 @@
-import { COLS, ROWS, HIDDEN, PIECES, cellsOf } from "./pieces.js";
+import { COLS, ROWS, HIDDEN, PIECES, cellsOf, LOCK_DELAY_MS } from "./pieces.js";
 import { ghostY } from "./engine.js";
 import { skinColors, skinStyle } from "./skins.js";
 const MAX_DPR = 2.75;
@@ -17,6 +17,7 @@ export class Renderer {
     this.beams = [];
     this.rings = [];
     this.scorePops = [];
+    this.dropTrails = [];
     this.flash = 0;
     this.flashColor = "120, 220, 255";
     this.shake = 0;
@@ -142,24 +143,70 @@ export class Renderer {
     }
   }
 
-  spawnLock(hard) {
+  spawnLock(hard, piece, dropCells = 0, fromY = null) {
     const m = this.metrics();
-    const n = hard ? 18 : 10;
-    for (let i = 0; i < n; i++) {
-      this.particles.push({
-        x: m.inset + Math.random() * (this.board.width - m.inset * 2),
-        y: m.inset + this.board.height * (0.55 + Math.random() * 0.4),
-        vx: (Math.random() - 0.5) * 200 * m.dpr,
-        vy: (-80 - Math.random() * 180) * m.dpr,
-        life: 280 + Math.random() * 220,
-        max: 500,
-        size: (1.6 + Math.random() * 2.4) * m.dpr,
-        color: hard ? "#ffe9a8" : "#9ae6ff",
-      });
+    const pal = piece ? skinColors(this.theme, piece.id) : null;
+    const color = hard
+      ? (pal?.color || "#ffe9a8")
+      : (this.theme === "magma" ? "#fdba74" : this.theme === "crt" ? "#ffb000" : "#9ae6ff");
+
+    if (hard && piece && dropCells > 1 && fromY != null) {
+      // trilha de queda rápida
+      for (const { x, y } of cellsOf(piece)) {
+        const visY = y - HIDDEN;
+        if (visY < 0) continue;
+        const topVis = Math.max(0, fromY + (y - piece.y) - HIDDEN);
+        this.dropTrails.push({
+          x: m.inset + (x + 0.5) * m.cw,
+          y0: m.inset + (topVis + 0.2) * m.ch,
+          y1: m.inset + (visY + 0.8) * m.ch,
+          life: 280 + dropCells * 12,
+          max: 320 + dropCells * 12,
+          color,
+          w: Math.max(2, m.cw * 0.22),
+        });
+      }
+    }
+
+    const cells = piece ? cellsOf(piece) : [];
+    if (cells.length) {
+      for (const { x, y } of cells) {
+        const visY = y - HIDDEN;
+        if (visY < 0 || visY >= ROWS) continue;
+        const px = m.inset + (x + 0.5) * m.cw;
+        const py = m.inset + (visY + 0.5) * m.ch;
+        const n = hard ? 5 : 3;
+        for (let i = 0; i < n; i++) {
+          this.particles.push({
+            x: px,
+            y: py,
+            vx: (Math.random() - 0.5) * (hard ? 260 : 140) * m.dpr,
+            vy: (-60 - Math.random() * (hard ? 220 : 120)) * m.dpr,
+            life: 260 + Math.random() * 200,
+            max: 480,
+            size: (1.4 + Math.random() * 2.2) * m.dpr,
+            color,
+          });
+        }
+      }
+    } else {
+      const n = hard ? 18 : 10;
+      for (let i = 0; i < n; i++) {
+        this.particles.push({
+          x: m.inset + Math.random() * (this.board.width - m.inset * 2),
+          y: m.inset + this.board.height * (0.55 + Math.random() * 0.4),
+          vx: (Math.random() - 0.5) * 200 * m.dpr,
+          vy: (-80 - Math.random() * 180) * m.dpr,
+          life: 280 + Math.random() * 220,
+          max: 500,
+          size: (1.6 + Math.random() * 2.4) * m.dpr,
+          color,
+        });
+      }
     }
     if (hard) {
-      this.flash = Math.max(this.flash, 0.28);
-      this.shake = Math.max(this.shake, 6);
+      this.flash = Math.max(this.flash, 0.34);
+      this.shake = Math.max(this.shake, 7 + Math.min(6, dropCells * 0.15));
     }
   }
 
@@ -228,6 +275,12 @@ export class Renderer {
       if (s.life > 0) nextPops.push(s);
     }
     this.scorePops = nextPops;
+    const nextTrails = [];
+    for (const tr of this.dropTrails) {
+      tr.life -= t;
+      if (tr.life > 0) nextTrails.push(tr);
+    }
+    this.dropTrails = nextTrails;
   }
 
   draw(game) {
@@ -508,7 +561,59 @@ export class Renderer {
         if (visY < 0 || visY >= ROWS) continue;
         drawCell(ctx, x, visY, cw, ch, pal.color, pal.deep, 1, lockPulse, true, false, style, !!pal.hatch);
       }
+      // medidor de trava (quando no chão)
+      if (game.grounded && game.lockMs > 0) {
+        const ratio = Math.min(1, game.lockMs / LOCK_DELAY_MS);
+        ctx.save();
+        for (const { x, y } of cellsOf(game.active)) {
+          const visY = y - HIDDEN;
+          if (visY < 0 || visY >= ROWS) continue;
+          const px = x * cw;
+          const py = (visY + 1) * ch - Math.max(2, ch * 0.1);
+          ctx.globalAlpha = 0.85;
+          ctx.fillStyle = "rgba(0,0,0,0.45)";
+          ctx.fillRect(px + cw * 0.12, py, cw * 0.76, Math.max(2, ch * 0.08));
+          ctx.fillStyle = pal.color;
+          ctx.shadowColor = pal.color;
+          ctx.shadowBlur = 8;
+          ctx.fillRect(px + cw * 0.12, py, cw * 0.76 * ratio, Math.max(2, ch * 0.08));
+          ctx.shadowBlur = 0;
+        }
+        ctx.restore();
+      }
     }
+
+    // alerta de perigo: pilha alta
+    let danger = 0;
+    for (let y = HIDDEN; y < HIDDEN + 6; y++) {
+      for (let x = 0; x < COLS; x++) {
+        if (game.board[y][x]) { danger = Math.max(danger, (HIDDEN + 6 - y) / 6); }
+      }
+    }
+    if (danger > 0.15 && game.state === "playing") {
+      const pulseD = 0.08 + 0.1 * Math.sin(performance.now() / 180);
+      const g = ctx.createLinearGradient(0, 0, 0, innerH * 0.35);
+      g.addColorStop(0, `rgba(239, 68, 68, ${danger * pulseD})`);
+      g.addColorStop(1, "rgba(239,68,68,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, innerW, innerH * 0.35);
+    }
+
+    // trilhas de hard drop
+    for (const tr of this.dropTrails) {
+      const a = Math.max(0, tr.life / tr.max);
+      const grd = ctx.createLinearGradient(0, tr.y0 - inset, 0, tr.y1 - inset);
+      grd.addColorStop(0, "rgba(255,255,255,0)");
+      grd.addColorStop(0.35, tr.color);
+      grd.addColorStop(1, "rgba(255,255,255,0.85)");
+      ctx.globalAlpha = a * 0.75;
+      ctx.fillStyle = grd;
+      ctx.shadowColor = tr.color;
+      ctx.shadowBlur = 12;
+      ctx.fillRect(tr.x - inset - tr.w / 2, tr.y0 - inset, tr.w, Math.max(1, tr.y1 - tr.y0));
+      ctx.shadowBlur = 0;
+    }
+    ctx.globalAlpha = 1;
 
     for (const b of this.beams) {
       const a = Math.max(0, b.life / b.max);
