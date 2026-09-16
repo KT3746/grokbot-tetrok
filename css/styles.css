@@ -887,3 +887,13 @@ body.theme-pixel .float-best strong { font-family: "Press Start 2P", monospace; 
 body.is-danger #board {
   box-shadow: 0 0 28px rgba(239, 68, 68, 0.45);
 }
+
+
+/* === Pause v41 === */
+#overlay {
+  z-index: 50;
+}
+#btn-pause[aria-pressed="true"] {
+  color: #67e8f9;
+  box-shadow: 0 0 14px rgba(103,232,249,0.45);
+}
