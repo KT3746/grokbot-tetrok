@@ -1,6 +1,6 @@
-import { COLS, ROWS, HIDDEN, PIECES, cellsOf, LOCK_DELAY_MS } from "./pieces.js";
-import { ghostY } from "./engine.js";
-import { skinColors, skinStyle } from "./skins.js";
+import { COLS, ROWS, HIDDEN, PIECES, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=40-fix";
+import { ghostY } from "./engine.js?v=40-fix";
+import { skinColors, skinStyle } from "./skins.js?v=40-fix";
 const MAX_DPR = 2.75;
 
 export class Renderer {
