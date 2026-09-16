@@ -182,7 +182,8 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 }
 .float-side {
   position: absolute; top: 6px; right: 6px;
-  display: flex; flex-direction: column; gap: 4px; pointer-events: auto;
+  display: flex; flex-direction: column; gap: 4px;
+  pointer-events: none; /* NEXT não engole gesto no tabuleiro */
   max-width: 40%;
   z-index: 5;
 }
@@ -876,4 +877,13 @@ body.theme-crt #stat-score-float.is-record { color: #ffc933 !important; }
 body.theme-pixel .float-best strong { font-family: "Press Start 2P", monospace; font-size: 0.45rem; }
 @media (prefers-reduced-motion: reduce) {
   #stat-score-float.is-record { animation: none; }
+}
+
+
+/* === Fix v40 === */
+.float-box {
+  backdrop-filter: blur(10px);
+}
+body.is-danger #board {
+  box-shadow: 0 0 28px rgba(239, 68, 68, 0.45);
 }
