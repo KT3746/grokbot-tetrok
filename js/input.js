@@ -1,4 +1,4 @@
-import { DAS_MS, ARR_MS } from "./pieces.js";
+import { DAS_MS, ARR_MS } from "./pieces.js?v=40-fix";
 
 /**
  * Teclado + toque sem disparo duplo.
@@ -93,7 +93,7 @@ export class Input {
     } else if (action === "rotL") {
       if (first) g.rotate(-1);
     } else if (action === "hold") {
-      if (first) g.holdPiece();
+      // HOLD desligado no modo essencial (sem UI)
     } else if (action === "pause") {
       if (first) this.onPause();
     }
@@ -240,7 +240,7 @@ function keyAction(key, code) {
   if (key === "ArrowUp" || key === "x" || key === "X") return "rotR";
   if (key === "z" || key === "Z") return "rotL";
   if (code === "Space") return "hard";
-  if (key === "c" || key === "C") return "hold";
+  // HOLD (C) desligado no modo essencial
   return null;
 }
 
