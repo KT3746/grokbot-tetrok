@@ -1,7 +1,7 @@
-import { Game, STATE } from "./engine.js?v=40-fix";
-import { AudioEngine } from "./audio.js?v=40-fix";
-import { Renderer } from "./render.js?v=40-fix";
-import { Input } from "./input.js?v=40-fix";
+import { Game, STATE } from "./engine.js?v=41-pause";
+import { AudioEngine } from "./audio.js?v=41-pause";
+import { Renderer } from "./render.js?v=41-pause";
+import { Input } from "./input.js?v=41-pause";
 
 
 // iOS Safari: trava pinch / double-tap / scale (não dá pra "deszoomar" por JS)
@@ -321,15 +321,24 @@ const game = new Game({
   onPause: () => {
     audio.pause();
     showOverlay("Pausa", "Cafézinho? Quando quiser, bora de novo.", false);
+    // na pausa: esconde seletor de tema pra não parecer menu inicial
+    if (els.themePicker) els.themePicker.hidden = true;
+    const themeLab = document.getElementById("theme-label-ui");
+    if (themeLab) themeLab.hidden = true;
+    if (els.btnHomeOverlay) els.btnHomeOverlay.hidden = false;
     els.btnPause.setAttribute("aria-pressed", "true");
-    const pl = els.btnPause.querySelector(".btn-label");
-    if (pl) pl.textContent = "Continuar";
+    els.btnPause.setAttribute("aria-label", "Continuar");
+    els.btnPause.title = "Continuar";
+    els.btnPause.textContent = "▶";
+    syncPauseOverlay();
   },
   onResume: () => {
     audio.resume();
     hideOverlay();
     els.btnPause.setAttribute("aria-pressed", "false");
-    (function(){const pl=els.btnPause.querySelector(".btn-label"); if(pl) pl.textContent="Pausa";})();
+    els.btnPause.setAttribute("aria-label", "Pausar");
+    els.btnPause.title = "Pausar";
+    els.btnPause.textContent = "❚❚";
   },
   onLock: ({ hard, piece, dropCells, fromY }) => {
     if (!hard) audio.lock();
@@ -387,8 +396,10 @@ const game = new Game({
             ? "Pressão alta. Você joga limpo."
             : "Élite. Isso aqui já é vitrine.";
     showOverlay("Game over!", roast, true, snap.score);
-    (function(){const pl=els.btnPause.querySelector(".btn-label"); if(pl) pl.textContent="Pausa";})();
+    els.btnPause.textContent = "❚❚";
     els.btnPause.setAttribute("aria-pressed", "false");
+    els.btnPause.setAttribute("aria-label", "Pausar");
+    els.btnPause.title = "Pausar";
     syncHud();
   },
   onSpawn: () => { renderer.onSpawnFlash(); syncHud(); },
@@ -432,8 +443,9 @@ function goHome() {
   try { audio.pause(); } catch (_) {}
   hudScoreShown = game.score;
   els.btnPause.setAttribute("aria-pressed", "false");
-  const pl = els.btnPause.querySelector(".btn-label");
-  if (pl) pl.textContent = "Pausa";
+  els.btnPause.setAttribute("aria-label", "Pausar");
+  els.btnPause.title = "Pausar";
+  els.btnPause.textContent = "❚❚";
   showStart();
   syncHud();
   try { layout(); } catch (_) {}
@@ -524,6 +536,7 @@ function loop(now) {
       }
       els.app.classList.toggle("is-danger", danger);
     } catch (_) {}
+    try { syncPauseOverlay(); } catch (_) {}
     try { renderer.syncMinis(); } catch (_) {}
     renderer.draw(game);
   } catch (err) {
@@ -537,6 +550,29 @@ function handlePauseButton() {
   // Pausa só pausa/continua — não inicia partida (use Jogar / Espaço / Enter)
   if (game.state === STATE.READY || game.state === STATE.OVER) return;
   game.togglePause();
+  // garante UI mesmo se o hook falhar
+  syncPauseOverlay();
+}
+
+/** Se o estado é pausa, o overlay TEM que estar visível */
+function syncPauseOverlay() {
+  if (game.state !== STATE.PAUSED) return;
+  if (!els.overlay || !els.overlay.hidden) {
+    // ainda assim reforça display
+    if (els.overlay) {
+      els.overlay.hidden = false;
+      els.overlay.removeAttribute("hidden");
+      els.overlay.style.display = "grid";
+    }
+    return;
+  }
+  showOverlay("Pausa", "Cafézinho? Quando quiser, bora de novo.", false);
+  if (els.themePicker) els.themePicker.hidden = true;
+  const themeLab = document.getElementById("theme-label-ui");
+  if (themeLab) themeLab.hidden = true;
+  if (els.btnHomeOverlay) els.btnHomeOverlay.hidden = false;
+  els.btnPlay.textContent = "Continuar";
+  els.btnPause.textContent = "▶";
 }
 
 function syncHud() {
@@ -639,6 +675,8 @@ function showStart() {
 
 function showOverlay(title, text, again, score) {
   els.overlay.hidden = false;
+  els.overlay.removeAttribute("hidden");
+  els.overlay.style.display = "grid";
   els.overlayTitle.textContent = title;
   els.overlayText.textContent = text;
   els.overlayText.hidden = !text;
@@ -665,6 +703,8 @@ function showOverlay(title, text, again, score) {
 
 function hideOverlay() {
   els.overlay.hidden = true;
+  els.overlay.setAttribute("hidden", "");
+  els.overlay.style.display = "none";
   els.app.classList.remove("is-overlay");
 }
 
