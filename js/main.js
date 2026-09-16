@@ -1,7 +1,7 @@
-import { Game, STATE } from "./engine.js";
-import { AudioEngine } from "./audio.js";
-import { Renderer } from "./render.js";
-import { Input } from "./input.js";
+import { Game, STATE } from "./engine.js?v=40-fix";
+import { AudioEngine } from "./audio.js?v=40-fix";
+import { Renderer } from "./render.js?v=40-fix";
+import { Input } from "./input.js?v=40-fix";
 
 
 // iOS Safari: trava pinch / double-tap / scale (não dá pra "deszoomar" por JS)
@@ -365,9 +365,11 @@ const game = new Game({
   onLevelUp: () => {
     audio.levelUp();
     renderer.pulseLevel();
-    if (!String(game.lastClearLabel || "").includes("TETROK")) {
-      renderer.showToast(`Nível ${game.level}! Ficou mais rápido`);
-    }
+    const lv = game.level;
+    // não sobrescreve toast de linha na mesma hora
+    window.setTimeout(() => {
+      if (game.level === lv) renderer.showToast(`Nível ${lv}! Mais rápido`);
+    }, 700);
     syncHud();
   },
   onGameOver: (snap) => {
@@ -428,6 +430,7 @@ function goHome() {
   if (tutorialOpen) return;
   try { game.reset(); } catch (_) {}
   try { audio.pause(); } catch (_) {}
+  hudScoreShown = game.score;
   els.btnPause.setAttribute("aria-pressed", "false");
   const pl = els.btnPause.querySelector(".btn-label");
   if (pl) pl.textContent = "Pausa";
@@ -509,6 +512,18 @@ function loop(now) {
     } else if (hudScoreShown > game.score) {
       hudScoreShown = game.score;
     }
+    // classe de perigo no chrome quando a pilha sobe
+    try {
+      let danger = false;
+      if (game.state === STATE.PLAYING && game.board) {
+        for (let y = 2; y < 8 && !danger; y++) {
+          for (let x = 0; x < 10; x++) {
+            if (game.board[y][x]) { danger = true; break; }
+          }
+        }
+      }
+      els.app.classList.toggle("is-danger", danger);
+    } catch (_) {}
     try { renderer.syncMinis(); } catch (_) {}
     renderer.draw(game);
   } catch (err) {
@@ -519,28 +534,23 @@ function loop(now) {
 
 function handlePauseButton() {
   if (tutorialOpen) return;
-  if (game.state === STATE.READY) {
-    game.start();
-    audio.start();
-    return;
-  }
-  if (game.state === STATE.OVER) {
-    game.start();
-    audio.start();
-    return;
-  }
+  // Pausa só pausa/continua — não inicia partida (use Jogar / Espaço / Enter)
+  if (game.state === STATE.READY || game.state === STATE.OVER) return;
   game.togglePause();
 }
 
 function syncHud() {
-  const s = String(game.score);
   const lv = String(game.level);
   const ln = String(game.lines);
   const set = (el, v) => { if (el) el.textContent = v; };
-  set(els.score, s); set(els.level, lv); set(els.lines, ln);
-  set(els.scoreM, s); set(els.levelM, lv); set(els.linesM, ln);
-  set(els.scoreRail, s); set(els.levelRail, lv); set(els.linesRail, ln);
-  set(els.scoreFloat, s);
+  // placar numérico é atualizado no loop (tween); aqui só força se estiver sincronizado
+  if (hudScoreShown === game.score) {
+    const s = String(game.score);
+    set(els.score, s); set(els.scoreM, s); set(els.scoreRail, s); set(els.scoreFloat, s);
+  }
+  set(els.level, lv); set(els.lines, ln);
+  set(els.levelM, lv); set(els.linesM, ln);
+  set(els.levelRail, lv); set(els.linesRail, ln);
   set(els.levelFloat, lv);
   set(els.linesFloat, ln);
   if (els.comboFloat) {
@@ -614,7 +624,7 @@ function finishHowTo() {
 }
 
 function showStart() {
-  showOverlay("TETROK", best > 0 ? `Recorde: ${best}` : "Encaixe. Limpe. Suba de nível.", false);
+  showOverlay("TETROK", "Encaixe. Limpe. Suba de nível.", false);
   els.btnPlay.textContent = "Jogar!";
   if (best > 0) {
     els.overlayScore.hidden = false;
