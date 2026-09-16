@@ -310,14 +310,13 @@ export class AudioEngine {
   resume() {
     this.tone({ freq: 247, dur: 0.07, type: "sine", vol: 0.07 });
     this.tone({ freq: 330, dur: 0.09, type: "sine", vol: 0.08, delay: 0.07 });
-    this.startMusic(true);
   }
 
   start() {
     [392, 523, 659].forEach((freq, i) => {
       this.tone({ freq, dur: 0.12, type: "triangle", vol: 0.1, delay: i * 0.06 });
     });
-    this.startMusic();
+    // Sem botão de mudo: só efeitos, sem música de fundo
   }
 }
 
