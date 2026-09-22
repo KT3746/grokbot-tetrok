@@ -1,7 +1,7 @@
-import { Game, STATE } from "./engine.js?v=41-pause";
-import { AudioEngine } from "./audio.js?v=41-pause";
-import { Renderer } from "./render.js?v=41-pause";
-import { Input } from "./input.js?v=41-pause";
+import { Game, STATE } from "./engine.js?v=42-over";
+import { AudioEngine } from "./audio.js?v=42-over";
+import { Renderer } from "./render.js?v=42-over";
+import { Input } from "./input.js?v=42-over";
 
 
 // iOS Safari: trava pinch / double-tap / scale (não dá pra "deszoomar" por JS)
@@ -382,7 +382,6 @@ const game = new Game({
     syncHud();
   },
   onGameOver: (snap) => {
-    audio.gameOver();
     if (snap.score > best) {
       best = snap.score;
       writeBest(best);
@@ -395,7 +394,9 @@ const game = new Game({
           : snap.score < 5000
             ? "Pressão alta. Você joga limpo."
             : "Élite. Isso aqui já é vitrine.";
+    // overlay primeiro: audio não pode bloquear o fim de jogo
     showOverlay("Game over!", roast, true, snap.score);
+    try { audio.gameOver(); } catch (_) {}
     els.btnPause.textContent = "❚❚";
     els.btnPause.setAttribute("aria-pressed", "false");
     els.btnPause.setAttribute("aria-label", "Pausar");
