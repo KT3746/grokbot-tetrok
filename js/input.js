@@ -1,4 +1,4 @@
-import { DAS_MS, ARR_MS } from "./pieces.js?v=41-pause";
+import { DAS_MS, ARR_MS } from "./pieces.js?v=42-over";
 
 /**
  * Teclado + toque sem disparo duplo.
