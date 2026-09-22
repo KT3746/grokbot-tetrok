@@ -179,7 +179,7 @@ export class AudioEngine {
     this.musicTimer = setInterval(tick, 195);
   }
 
-  stopMusicstopMusic(keepFlag = false) {
+  stopMusic(keepFlag = false) {
     if (!keepFlag) this.musicOn = false;
     if (this.musicTimer) {
       clearInterval(this.musicTimer);
