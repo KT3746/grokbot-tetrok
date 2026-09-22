@@ -1,6 +1,6 @@
-import { COLS, ROWS, HIDDEN, PIECES, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=42-over";
-import { ghostY } from "./engine.js?v=42-over";
-import { skinColors, skinStyle } from "./skins.js?v=42-over";
+import { COLS, ROWS, HIDDEN, PIECES, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=43-polish";
+import { ghostY } from "./engine.js?v=43-polish";
+import { skinColors, skinStyle } from "./skins.js?v=43-polish";
 const MAX_DPR = 2.75;
 
 export class Renderer {
@@ -26,6 +26,14 @@ export class Renderer {
     this.levelFlash = 0;
     this.spawnFlash = 0;
     this.theme = "neon";
+    this.reducedMotion = false;
+    try {
+      const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+      this.reducedMotion = !!mq.matches;
+      if (mq.addEventListener) {
+        mq.addEventListener("change", (e) => { this.reducedMotion = !!e.matches; });
+      }
+    } catch (_) {}
   }
 
   resize(cssWidth, cssHeight) {
@@ -91,55 +99,66 @@ export class Renderer {
       flashColor = count >= 4 ? "255, 90, 210" : "90, 210, 255";
     }
     this.flashColor = flashColor;
-    this.flash = count >= 4 ? 0.62 : 0.3 + count * 0.08;
-    this.shake = count >= 4 ? 14 : 4 + count * 1.5;
+    const rm = this.reducedMotion;
+    this.flash = rm ? (count >= 4 ? 0.28 : 0.12) : (count >= 4 ? 0.78 : 0.34 + count * 0.09);
+    this.shake = rm ? 0 : (count >= 4 ? 18 : 5 + count * 1.8);
+    const sparkN = rm ? 0 : (count >= 4 ? 4 + count : 2 + count);
     for (const y of rows) {
       const visY = y - HIDDEN;
       if (visY < 0) continue;
       const cy = m.inset + (visY + 0.5) * m.ch;
       const left = m.inset;
       const right = m.inset + COLS * m.cw;
-      // laser beam across the cleared row
-      this.beams.push({
-        y: cy,
-        life: 420 + count * 40,
-        max: 460 + count * 40,
-        h: Math.max(3, m.ch * (0.55 + count * 0.08)),
-        color: hues[visY % hues.length],
-        left,
-        right,
-      });
-      // expanding ring from center of row
-      this.rings.push({
-        x: (left + right) / 2,
-        y: cy,
-        r: m.cw * 0.2,
-        vr: m.cw * (2.8 + count * 0.5),
-        life: 480 + count * 50,
-        max: 520 + count * 50,
-        color: hues[(visY + 1) % hues.length],
-        lw: Math.max(2, m.dpr * 2.2),
-      });
-      // sideways sparks (no gravity) instead of exploding confetti
+      if (!rm) {
+        this.beams.push({
+          y: cy,
+          life: 460 + count * 50,
+          max: 500 + count * 50,
+          h: Math.max(3, m.ch * (0.6 + count * 0.1)),
+          color: hues[visY % hues.length],
+          left,
+          right,
+        });
+        this.rings.push({
+          x: (left + right) / 2,
+          y: cy,
+          r: m.cw * 0.2,
+          vr: m.cw * (3.1 + count * 0.55),
+          life: 520 + count * 55,
+          max: 560 + count * 55,
+          color: hues[(visY + 1) % hues.length],
+          lw: Math.max(2, m.dpr * 2.4),
+        });
+      }
+      if (sparkN <= 0) continue;
       for (let x = 0; x < COLS; x++) {
         const cellData = board[y][x];
         const color = cellData?.color || hues[x % hues.length];
         const px = m.inset + (x + 0.5) * m.cw;
-        for (let i = 0; i < 2 + count; i++) {
+        for (let i = 0; i < sparkN; i++) {
           const dir = i % 2 === 0 ? -1 : 1;
           this.particles.push({
             x: px,
             y: cy,
-            vx: dir * (140 + Math.random() * 220) * m.dpr,
-            vy: (Math.random() - 0.5) * 40 * m.dpr,
-            life: 360 + Math.random() * 220,
-            max: 580,
-            size: (1.8 + Math.random() * 2.6) * m.dpr,
+            vx: dir * (160 + Math.random() * 260) * m.dpr,
+            vy: (Math.random() - 0.5) * 50 * m.dpr,
+            life: 380 + Math.random() * 240,
+            max: 620,
+            size: (2 + Math.random() * 2.8) * m.dpr,
             color,
             kind: "spark",
           });
         }
       }
+    }
+    // TETROK quad: anel extra no centro do poço
+    if (!rm && count >= 4) {
+      const cx = m.inset + (COLS * m.cw) / 2;
+      const cy = m.inset + (ROWS * m.ch) / 2;
+      this.rings.push({
+        x: cx, y: cy, r: m.cw * 0.4, vr: m.cw * 5.5,
+        life: 700, max: 700, color: hues[0], lw: Math.max(3, m.dpr * 3),
+      });
     }
   }
 
@@ -175,7 +194,7 @@ export class Renderer {
         if (visY < 0 || visY >= ROWS) continue;
         const px = m.inset + (x + 0.5) * m.cw;
         const py = m.inset + (visY + 0.5) * m.ch;
-        const n = hard ? 5 : 3;
+        const n = this.reducedMotion ? 0 : (hard ? 5 : 3);
         for (let i = 0; i < n; i++) {
           this.particles.push({
             x: px,
@@ -190,7 +209,7 @@ export class Renderer {
         }
       }
     } else {
-      const n = hard ? 18 : 10;
+      const n = this.reducedMotion ? 0 : (hard ? 18 : 10);
       for (let i = 0; i < n; i++) {
         this.particles.push({
           x: m.inset + Math.random() * (this.board.width - m.inset * 2),
@@ -205,8 +224,12 @@ export class Renderer {
       }
     }
     if (hard) {
-      this.flash = Math.max(this.flash, 0.34);
-      this.shake = Math.max(this.shake, 7 + Math.min(6, dropCells * 0.15));
+      if (this.reducedMotion) {
+        this.flash = Math.max(this.flash, 0.18);
+      } else {
+        this.flash = Math.max(this.flash, 0.4);
+        this.shake = Math.max(this.shake, 8 + Math.min(7, dropCells * 0.18));
+      }
     }
   }
 
@@ -231,11 +254,22 @@ export class Renderer {
   }
 
   onSpawnFlash() {
-    this.spawnFlash = 0.35;
+    this.spawnFlash = this.reducedMotion ? 0.12 : 0.35;
+  }
+
+  gameOverFx() {
+    if (this.reducedMotion) {
+      this.flashColor = "255, 90, 90";
+      this.flash = Math.max(this.flash, 0.22);
+      return;
+    }
+    this.flashColor = "255, 70, 90";
+    this.flash = Math.max(this.flash, 0.48);
+    this.shake = Math.max(this.shake, 11);
   }
 
   pulseLevel() {
-    this.levelFlash = 1;
+    this.levelFlash = this.reducedMotion ? 0.45 : 1;
   }
 
   stepFx(dt) {
@@ -245,42 +279,52 @@ export class Renderer {
     this.toastMs = Math.max(0, this.toastMs - t);
     this.levelFlash = Math.max(0, this.levelFlash - t / 700);
     this.spawnFlash = Math.max(0, this.spawnFlash - t / 420);
-    const next = [];
-    for (const p of this.particles) {
-      p.life -= t;
-      p.x += (p.vx * t) / 1000;
-      p.y += (p.vy * t) / 1000;
-      if (p.kind !== "spark") p.vy += (380 * t) / 1000;
-      else p.vx *= 1 - t / 900;
-      if (p.life > 0) next.push(p);
+    if (this.particles.length) {
+      const next = [];
+      for (const p of this.particles) {
+        p.life -= t;
+        p.x += (p.vx * t) / 1000;
+        p.y += (p.vy * t) / 1000;
+        if (p.kind !== "spark") p.vy += (380 * t) / 1000;
+        else p.vx *= 1 - t / 900;
+        if (p.life > 0) next.push(p);
+      }
+      this.particles = next;
     }
-    this.particles = next;
-    const nextBeams = [];
-    for (const b of this.beams) {
-      b.life -= t;
-      if (b.life > 0) nextBeams.push(b);
+    if (this.beams.length) {
+      const nextBeams = [];
+      for (const b of this.beams) {
+        b.life -= t;
+        if (b.life > 0) nextBeams.push(b);
+      }
+      this.beams = nextBeams;
     }
-    this.beams = nextBeams;
-    const nextRings = [];
-    for (const r of this.rings) {
-      r.life -= t;
-      r.r += (r.vr * t) / 1000;
-      if (r.life > 0) nextRings.push(r);
+    if (this.rings.length) {
+      const nextRings = [];
+      for (const r of this.rings) {
+        r.life -= t;
+        r.r += (r.vr * t) / 1000;
+        if (r.life > 0) nextRings.push(r);
+      }
+      this.rings = nextRings;
     }
-    this.rings = nextRings;
-    const nextPops = [];
-    for (const s of this.scorePops) {
-      s.life -= t;
-      s.y += (s.vy * t) / 1000;
-      if (s.life > 0) nextPops.push(s);
+    if (this.scorePops.length) {
+      const nextPops = [];
+      for (const s of this.scorePops) {
+        s.life -= t;
+        s.y += (s.vy * t) / 1000;
+        if (s.life > 0) nextPops.push(s);
+      }
+      this.scorePops = nextPops;
     }
-    this.scorePops = nextPops;
-    const nextTrails = [];
-    for (const tr of this.dropTrails) {
-      tr.life -= t;
-      if (tr.life > 0) nextTrails.push(tr);
+    if (this.dropTrails.length) {
+      const nextTrails = [];
+      for (const tr of this.dropTrails) {
+        tr.life -= t;
+        if (tr.life > 0) nextTrails.push(tr);
+      }
+      this.dropTrails = nextTrails;
     }
-    this.dropTrails = nextTrails;
   }
 
   draw(game) {
