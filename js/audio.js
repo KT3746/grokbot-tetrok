@@ -246,38 +246,43 @@ export class AudioEngine {
     this.tone({ freq: 500, dur: 0.09, type: "sine", vol: 0.1, slide: 240 });
   }
 
-  lineClear(count) {
-    // zap + whoosh (bem diferente do acorde antigo)
-    this.noise(0.08 + count * 0.03, 0.09 + count * 0.025);
-    const base = 180 + count * 40;
+  lineClear(count, combo = 0) {
+    const boost = 1 + Math.min(0.35, Math.max(0, combo - 1) * 0.08);
+    // zap + whoosh
+    this.noise(0.08 + count * 0.035, (0.1 + count * 0.03) * boost);
+    const base = 180 + count * 45;
     this.tone({
       freq: base,
-      dur: 0.12,
+      dur: 0.13,
       type: "sawtooth",
-      vol: 0.11,
+      vol: 0.12 * boost,
       delay: 0,
     });
     this.tone({
       freq: base * 2.2,
-      dur: 0.16,
+      dur: 0.17,
       type: "square",
-      vol: 0.07,
+      vol: 0.08 * boost,
       delay: 0.04,
     });
-    // sweep ascendente curto
+    // sweep ascendente
     for (let i = 0; i < 3 + count; i++) {
       this.tone({
-        freq: 520 + i * (90 + count * 20),
-        dur: 0.07,
+        freq: 520 + i * (95 + count * 22),
+        dur: 0.075,
         type: "sine",
-        vol: 0.09,
-        delay: 0.06 + i * 0.035,
+        vol: 0.1 * boost,
+        delay: 0.055 + i * 0.032,
       });
     }
     if (count >= 4) {
-      this.noise(0.18, 0.12);
-      this.tone({ freq: 90, dur: 0.28, type: "triangle", vol: 0.14, delay: 0.05 });
-      this.tone({ freq: 1760, dur: 0.18, type: "sine", vol: 0.08, delay: 0.22 });
+      // TETROK — fanfarra extra
+      this.noise(0.22, 0.15 * boost);
+      this.tone({ freq: 80, dur: 0.32, type: "triangle", vol: 0.16 * boost, delay: 0.04 });
+      this.tone({ freq: 523, dur: 0.14, type: "triangle", vol: 0.13 * boost, delay: 0.1 });
+      this.tone({ freq: 784, dur: 0.16, type: "sine", vol: 0.11 * boost, delay: 0.18 });
+      this.tone({ freq: 1175, dur: 0.2, type: "sine", vol: 0.09 * boost, delay: 0.28 });
+      this.tone({ freq: 1568, dur: 0.18, type: "sine", vol: 0.07 * boost, delay: 0.38 });
     }
   }
 
@@ -288,23 +293,27 @@ export class AudioEngine {
   }
 
   gameOver() {
-    this.stopMusic();
-    [392, 349, 294, 246, 196].forEach((freq, i) => {
-      this.tone({
-        freq,
-        dur: 0.22,
-        type: "triangle",
-        vol: 0.12,
-        delay: i * 0.12,
-        slide: -30,
+    try { this.stopMusic(); } catch (_) {}
+    try {
+      [392, 349, 294, 246, 196].forEach((freq, i) => {
+        this.tone({
+          freq,
+          dur: 0.22,
+          type: "triangle",
+          vol: 0.12,
+          delay: i * 0.12,
+          slide: -30,
+        });
       });
-    });
+    } catch (_) {}
   }
 
   pause() {
-    this.pauseMusic();
-    this.tone({ freq: 330, dur: 0.08, type: "sine", vol: 0.08 });
-    this.tone({ freq: 247, dur: 0.1, type: "sine", vol: 0.07, delay: 0.08 });
+    try { this.pauseMusic(); } catch (_) {}
+    try {
+      this.tone({ freq: 330, dur: 0.08, type: "sine", vol: 0.08 });
+      this.tone({ freq: 247, dur: 0.1, type: "sine", vol: 0.07, delay: 0.08 });
+    } catch (_) {}
   }
 
   resume() {
@@ -316,7 +325,7 @@ export class AudioEngine {
     [392, 523, 659].forEach((freq, i) => {
       this.tone({ freq, dur: 0.12, type: "triangle", vol: 0.1, delay: i * 0.06 });
     });
-    // Sem botão de mudo: só efeitos, sem música de fundo
+    // Só SFX; BGM fica desligado (mute cobre master se ligado)
   }
 }
 
