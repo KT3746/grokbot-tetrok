@@ -10,12 +10,12 @@ export const TOTAL_ROWS = ROWS + HIDDEN;
 
 export const LINE_POINTS = [0, 100, 300, 500, 800];
 export const LINES_PER_LEVEL = 10;
-export const LOCK_DELAY_MS = 520;
+export const LOCK_DELAY_MS = 480;
 export const MAX_LOCK_RESETS = 16;
 export const CLEAR_ANIM_MS = 480;
-export const DAS_MS = 140;
-export const ARR_MS = 28;
-export const SOFT_DROP_MS = 24;
+export const DAS_MS = 105;
+export const ARR_MS = 16;
+export const SOFT_DROP_MS = 14;
 
 export const PIECE_KEYS = [
   "viga",
