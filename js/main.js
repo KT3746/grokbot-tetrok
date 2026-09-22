@@ -1,7 +1,7 @@
-import { Game, STATE } from "./engine.js?v=42-over";
-import { AudioEngine } from "./audio.js?v=42-over";
-import { Renderer } from "./render.js?v=42-over";
-import { Input } from "./input.js?v=42-over";
+import { Game, STATE } from "./engine.js?v=43-polish";
+import { AudioEngine } from "./audio.js?v=43-polish";
+import { Renderer } from "./render.js?v=43-polish";
+import { Input } from "./input.js?v=43-polish";
 
 
 // iOS Safari: trava pinch / double-tap / scale (não dá pra "deszoomar" por JS)
@@ -54,6 +54,7 @@ import { Input } from "./input.js?v=42-over";
 })();
 const BEST_KEY = "tetrok-recorde";
 const HOWTO_KEY = "tetrok-como-jogar";
+const TIP_KEY = "tetrok-dica";
 const THEME_KEY = "tetrok-tema";
 const LAYOUT_KEY = "tetrok-layout";
 const HOWTO_MS = 1800;
@@ -121,6 +122,9 @@ const els = {
   btnHomeOverlay: document.getElementById("btn-home-overlay"),
   btnPause: document.getElementById("btn-pause"),
   btnTheme: document.getElementById("btn-theme"),
+  btnMute: document.getElementById("btn-mute"),
+  tipToast: document.getElementById("tip-toast"),
+  btnTipDismiss: document.getElementById("btn-tip-dismiss"),
   themeLabel: document.getElementById("theme-label"),
   themePicker: document.getElementById("theme-picker"),
   layoutPicker: document.getElementById("layout-picker"),
@@ -315,11 +319,12 @@ const game = new Game({
   onScore: syncHud,
   onStart: () => {
     hideOverlay();
+    dismissTip(true);
     hudScoreShown = game.score;
     syncHud();
   },
   onPause: () => {
-    audio.pause();
+    try { audio.pause(); } catch (_) {}
     showOverlay("Pausa", "Cafézinho? Quando quiser, bora de novo.", false);
     // na pausa: esconde seletor de tema pra não parecer menu inicial
     if (els.themePicker) els.themePicker.hidden = true;
@@ -333,7 +338,7 @@ const game = new Game({
     syncPauseOverlay();
   },
   onResume: () => {
-    audio.resume();
+    try { audio.resume(); } catch (_) {}
     hideOverlay();
     els.btnPause.setAttribute("aria-pressed", "false");
     els.btnPause.setAttribute("aria-label", "Pausar");
@@ -350,7 +355,7 @@ const game = new Game({
     syncHud();
   },
   onLineClear: ({ count, label, rows, combo, b2b, perfect, gained }) => {
-    audio.lineClear(count);
+    try { audio.lineClear(count, combo || 0); } catch (_) {}
     renderer.spawnClear(rows, game.board, count);
     let tip = label;
     if (combo > 1) tip = `${label}  ·  Combo x${combo}`;
@@ -396,6 +401,7 @@ const game = new Game({
             : "Élite. Isso aqui já é vitrine.";
     // overlay primeiro: audio não pode bloquear o fim de jogo
     showOverlay("Game over!", roast, true, snap.score);
+    try { renderer.gameOverFx(); } catch (_) {}
     try { audio.gameOver(); } catch (_) {}
     els.btnPause.textContent = "❚❚";
     els.btnPause.setAttribute("aria-pressed", "false");
@@ -424,6 +430,7 @@ const input = new Input(game, audio, {
 
 els.btnPlay.addEventListener("click", () => {
   audio.unlock();
+  dismissTip(true);
   if (game.state === STATE.OVER || game.state === STATE.READY) {
     game.start();
     audio.start();
@@ -501,6 +508,63 @@ document.addEventListener("visibilitychange", () => {
   }, 450);
 });
 
+
+function syncMuteBtn() {
+  if (!els.btnMute) return;
+  const muted = !!audio.muted;
+  els.btnMute.setAttribute("aria-pressed", muted ? "true" : "false");
+  els.btnMute.setAttribute("aria-label", muted ? "Ativar efeitos sonoros" : "Silenciar efeitos sonoros");
+  els.btnMute.title = muted ? "Som ligado" : "Mudo";
+  els.btnMute.textContent = muted ? "🔇" : "🔊";
+}
+
+if (els.btnMute) {
+  const goMute = (ev) => {
+    ev.preventDefault();
+    audio.unlock();
+    audio.toggleMute();
+    syncMuteBtn();
+  };
+  els.btnMute.addEventListener("pointerup", goMute);
+  els.btnMute.addEventListener("click", goMute);
+  syncMuteBtn();
+}
+
+function readTipSeen() {
+  try { return localStorage.getItem(TIP_KEY) === "1"; } catch { return false; }
+}
+function writeTipSeen() {
+  try { localStorage.setItem(TIP_KEY, "1"); } catch {}
+}
+function dismissTip(persist) {
+  if (els.tipToast) {
+    els.tipToast.hidden = true;
+    els.tipToast.setAttribute("hidden", "");
+  }
+  if (persist) writeTipSeen();
+}
+function showTipIfNeeded() {
+  if (!els.tipToast) return;
+  if (readTipSeen()) {
+    dismissTip(false);
+    return;
+  }
+  els.tipToast.hidden = false;
+  els.tipToast.removeAttribute("hidden");
+}
+if (els.btnTipDismiss) {
+  els.btnTipDismiss.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    dismissTip(true);
+  });
+}
+if (els.tipToast) {
+  els.tipToast.addEventListener("pointerup", (ev) => {
+    if (ev.target && ev.target.id === "btn-tip-dismiss") return;
+    dismissTip(true);
+  });
+}
+
 bootScreen();
 layout();
 syncHud();
@@ -538,7 +602,6 @@ function loop(now) {
       els.app.classList.toggle("is-danger", danger);
     } catch (_) {}
     try { syncPauseOverlay(); } catch (_) {}
-    try { renderer.syncMinis(); } catch (_) {}
     renderer.draw(game);
   } catch (err) {
     console.error(err);
@@ -608,8 +671,9 @@ function syncHud() {
 }
 
 function bootScreen() {
-  writeHowToSeen();
+  writeHowToSeen(); // tutorial multi-passo fica desligado; tip leve abaixo
   showStart();
+  showTipIfNeeded();
 }
 
 function openHowTo() {
