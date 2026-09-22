@@ -1,4 +1,4 @@
-import { DAS_MS, ARR_MS } from "./pieces.js?v=42-over";
+import { DAS_MS, ARR_MS, SOFT_DROP_MS } from "./pieces.js?v=43-polish";
 
 /**
  * Teclado + toque sem disparo duplo.
@@ -111,9 +111,12 @@ export class Input {
           st.acc = 0;
           this.fire(action, false);
         }
-      } else if (st.acc >= ARR_MS) {
-        st.acc -= ARR_MS;
-        this.fire(action, false);
+      } else {
+        const rate = action === "soft" ? SOFT_DROP_MS : ARR_MS;
+        if (st.acc >= rate) {
+          st.acc -= rate;
+          this.fire(action, false);
+        }
       }
     }
   }
@@ -195,18 +198,18 @@ export class Input {
     const absX = Math.abs(this.swipe.accX);
     const absY = Math.abs(this.swipe.accY);
 
-    if (absX > 10 || absY > 10) this.swipe.moved = true;
+    if (absX > 8 || absY > 8) this.swipe.moved = true;
 
-    if (absX >= cellPx * 0.42 && absX > absY * 0.85) {
+    if (absX >= cellPx * 0.32 && absX > absY * 0.8) {
       const dir = this.swipe.accX > 0 ? 1 : -1;
-      const steps = Math.max(1, Math.round(absX / (cellPx * 0.92)));
+      const steps = Math.max(1, Math.round(absX / (cellPx * 0.85)));
       for (let i = 0; i < steps; i++) {
         if (this.game.move(dir)) this.audio.move();
       }
       this.swipe.accX = 0;
       this.swipe.accY *= 0.25;
-    } else if (this.swipe.accY >= cellPx * 0.4 && absY > absX * 0.85) {
-      const steps = Math.max(1, Math.round(this.swipe.accY / (cellPx * 0.55)));
+    } else if (this.swipe.accY >= cellPx * 0.3 && absY > absX * 0.8) {
+      const steps = Math.max(1, Math.round(this.swipe.accY / (cellPx * 0.48)));
       for (let i = 0; i < steps; i++) this.game.softDrop();
       this.swipe.accY = 0;
       this.swipe.accX *= 0.25;
@@ -221,12 +224,12 @@ export class Input {
     const cellPx = Math.max(28, this.boardEl.clientWidth / 10);
     this.swipe = null;
 
-    if (!sx.moved && Math.hypot(dx, dy) < 16) {
+    if (!sx.moved && Math.hypot(dx, dy) < 14) {
       if (this.game.rotate(1)) this.audio.rotate();
       return;
     }
     // swipe pra cima = queda rápida
-    if (dy < -cellPx * 0.75 && Math.abs(dy) > Math.abs(dx) * 1.1) {
+    if (dy < -cellPx * 0.58 && Math.abs(dy) > Math.abs(dx) * 1.05) {
       this.game.hardDrop();
       this.audio.hardDrop();
     }
