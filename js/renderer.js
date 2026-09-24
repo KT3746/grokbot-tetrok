@@ -2,7 +2,7 @@
  * Dual-path: tenta Three.js/WebGL; se falhar, usa o Canvas 2D clássico.
  * O jogo nunca fica travado sem renderer.
  */
-import { CanvasRenderer } from "./render.js?v=202609241900";
+import { CanvasRenderer } from "./render.js?v=202609241920";
 
 export const FAIL_PT =
   "Não foi possível iniciar o gráfico 3D. O TETROK continua no visual clássico (2D).";
@@ -54,7 +54,7 @@ export async function createRenderer(boardCanvas, minis, { failEl } = {}) {
   }
 
   try {
-    const { ThreeRenderer } = await import("./render3d.js?v=202609241900");
+    const { ThreeRenderer } = await import("./render3d.js?v=202609241920");
     const renderer = new ThreeRenderer(boardCanvas, minis);
     if (!renderer.ok) throw new Error("three-init-failed");
     document.body.classList.add("renderer-webgl");

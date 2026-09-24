@@ -4,33 +4,34 @@
  * Preview NEXT/HOLD continua no Canvas 2D (legível em miniatura).
  */
 import * as THREE from "three";
-import { COLS, ROWS, HIDDEN, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202609241900";
-import { ghostY } from "./engine.js?v=202609241900";
-import { skinColors } from "./skins.js?v=202609241900";
-import { CanvasRenderer } from "./render.js?v=202609241900";
+import { COLS, ROWS, HIDDEN, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202609241920";
+import { ghostY } from "./engine.js?v=202609241920";
+import { skinColors } from "./skins.js?v=202609241920";
+import { CanvasRenderer } from "./render.js?v=202609241920";
 
 const CELL = 1;
-const BOX = 0.9;
+const BOX = 0.86;
+const BOX_Z = 0.92;
 const LOCKED_CAP = COLS * ROWS;
 const SPARK_CAP = 64;
 const TRAIL_CAP = 16;
 
 const WELL = {
   neon: {
-    fog: 0x050814, bg: 0x070b16, wall: 0x10182c, floor: 0x0a1020,
-    grid: 0x67e8f9, rim: 0x22d3ee, hemi: 0xa5f3fc, hemiG: 0x1e1b4b,
+    fog: 0x07101c, bg: 0x0a1220, wall: 0x1a2744, floor: 0x121a2c,
+    grid: 0x67e8f9, rim: 0x22d3ee, hemi: 0xd1faff, hemiG: 0x312e81,
   },
   magma: {
-    fog: 0x0a0402, bg: 0x0c0503, wall: 0x1c0a06, floor: 0x140603,
-    grid: 0xfb923c, rim: 0xf97316, hemi: 0xffc9a0, hemiG: 0x3b0a08,
+    fog: 0x140805, bg: 0x160804, wall: 0x3a140c, floor: 0x220a06,
+    grid: 0xfb923c, rim: 0xf97316, hemi: 0xffe0c2, hemiG: 0x4c0519,
   },
   crt: {
-    fog: 0x0a0800, bg: 0x050300, wall: 0x1a1200, floor: 0x120c00,
-    grid: 0xffb000, rim: 0xffc933, hemi: 0xffe08a, hemiG: 0x2a1a00,
+    fog: 0x120c00, bg: 0x0c0800, wall: 0x2a1c00, floor: 0x1a1200,
+    grid: 0xffb000, rim: 0xffc933, hemi: 0xfff0b8, hemiG: 0x3a2200,
   },
   pixel: {
-    fog: 0x0b1220, bg: 0x0b1220, wall: 0x1e293b, floor: 0x111827,
-    grid: 0x3b82f6, rim: 0x60a5fa, hemi: 0xbfdbfe, hemiG: 0x0f172a,
+    fog: 0x0f172a, bg: 0x0f172a, wall: 0x334155, floor: 0x1e293b,
+    grid: 0x60a5fa, rim: 0x3b82f6, hemi: 0xdbeafe, hemiG: 0x1e3a8a,
   },
 };
 
@@ -116,10 +117,10 @@ export class ThreeRenderer {
     this.scene = new THREE.Scene();
     const look = WELL[this.theme] || WELL.neon;
     this.scene.background = new THREE.Color(look.bg);
-    this.scene.fog = new THREE.FogExp2(look.fog, this.isLowEnd ? 0.028 : 0.018);
+    this.scene.fog = new THREE.FogExp2(look.fog, this.isLowEnd ? 0.016 : 0.009);
 
-    this.camera = new THREE.PerspectiveCamera(34, 0.5, 0.1, 120);
-    this.camBase.set(0, 2.4, 32);
+    this.camera = new THREE.PerspectiveCamera(36, 0.5, 0.1, 120);
+    this.camBase.set(0, 10, 28);
     this.camera.position.copy(this.camBase);
     this.camera.lookAt(this.lookAt);
 
@@ -134,30 +135,34 @@ export class ThreeRenderer {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = false;
 
-    this.hemi = new THREE.HemisphereLight(look.hemi, look.hemiG, 0.85);
+    this.hemi = new THREE.HemisphereLight(look.hemi, look.hemiG, 1.05);
     this.scene.add(this.hemi);
-    this.amb = new THREE.AmbientLight(0xffffff, 0.22);
+    this.amb = new THREE.AmbientLight(0xffffff, 0.38);
     this.scene.add(this.amb);
-    this.sun = new THREE.DirectionalLight(0xfff6e8, 0.7);
-    this.sun.position.set(-4, 14, 18);
+    this.sun = new THREE.DirectionalLight(0xfff8ee, 1.15);
+    this.sun.position.set(-8, 18, 12);
     this.sun.castShadow = false;
     this.scene.add(this.sun);
-    this.rimLight = new THREE.PointLight(look.rim, 0.55, 40, 2);
-    this.rimLight.position.set(0, -8, 6);
+    this.fill = new THREE.DirectionalLight(0xb8d4ff, 0.4);
+    this.fill.position.set(10, 6, 14);
+    this.scene.add(this.fill);
+    this.rimLight = new THREE.PointLight(look.rim, 0.7, 42, 2);
+    this.rimLight.position.set(0, -7, 7);
     this.scene.add(this.rimLight);
 
     this.wellGroup = new THREE.Group();
     this.scene.add(this.wellGroup);
     this.buildWell(look);
 
-    const boxGeo = new THREE.BoxGeometry(BOX, BOX, BOX);
+    const boxGeo = new THREE.BoxGeometry(BOX, BOX, BOX_Z);
     this.lockedMat = this.makeCellMat();
     this.activeMat = this.makeCellMat(true);
     this.ghostMat = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       transparent: true,
-      opacity: 0.28,
+      opacity: 0.42,
       depthWrite: false,
+      wireframe: false,
     });
     this.lockedMesh = new THREE.InstancedMesh(boxGeo, this.lockedMat, LOCKED_CAP);
     this.lockedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -173,7 +178,7 @@ export class ThreeRenderer {
     this.activeMesh.setColorAt(0, new THREE.Color(0xffffff));
     this.scene.add(this.activeMesh);
 
-    const ghostGeo = new THREE.BoxGeometry(BOX * 0.92, BOX * 0.92, BOX * 0.92);
+    const ghostGeo = new THREE.BoxGeometry(BOX * 0.9, BOX * 0.9, BOX_Z * 0.85);
     this.ghostMesh = new THREE.InstancedMesh(ghostGeo, this.ghostMat, 8);
     this.ghostMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.ghostMesh.frustumCulled = false;
@@ -255,14 +260,23 @@ export class ThreeRenderer {
   }
 
   makeCellMat(glow = false) {
-    if (this.theme === "pixel" || this.lowFx) {
-      return new THREE.MeshBasicMaterial();
+    if (this.theme === "pixel") {
+      return new THREE.MeshLambertMaterial({ flatShading: true });
     }
-    const mat = new THREE.MeshLambertMaterial({
-      emissive: 0x111111,
-      emissiveIntensity: glow ? 0.55 : 0.28,
+    if (this.lowFx) {
+      return new THREE.MeshLambertMaterial({
+        emissive: 0x101010,
+        emissiveIntensity: 0.18,
+        flatShading: true,
+      });
+    }
+    return new THREE.MeshPhongMaterial({
+      shininess: glow ? 28 : 14,
+      specular: 0x3a3a3a,
+      emissive: 0x141414,
+      emissiveIntensity: glow ? 0.42 : 0.22,
+      flatShading: true,
     });
-    return mat;
   }
 
   buildWell(look) {
@@ -276,20 +290,20 @@ export class ThreeRenderer {
     const floorMat = new THREE.MeshLambertMaterial({ color: look.floor });
     const rimMat = new THREE.MeshBasicMaterial({ color: look.rim });
 
-    const depth = 1.35;
-    const left = new THREE.Mesh(new THREE.BoxGeometry(0.38, ROWS + 0.6, depth), wallMat);
-    left.position.set(-(COLS / 2) - 0.28, 0, -0.15);
+    const depth = 1.7;
+    const left = new THREE.Mesh(new THREE.BoxGeometry(0.42, ROWS + 0.8, depth), wallMat);
+    left.position.set(-(COLS / 2) - 0.32, 0, -0.22);
     this.wellGroup.add(left);
     const right = left.clone();
-    right.position.x = COLS / 2 + 0.28;
+    right.position.x = COLS / 2 + 0.32;
     this.wellGroup.add(right);
 
-    const back = new THREE.Mesh(new THREE.BoxGeometry(COLS + 0.9, ROWS + 0.6, 0.22), wallMat);
-    back.position.set(0, 0, -depth * 0.5 - 0.05);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(COLS + 1.05, ROWS + 0.8, 0.28), wallMat);
+    back.position.set(0, 0, -depth * 0.5 - 0.08);
     this.wellGroup.add(back);
 
-    const floor = new THREE.Mesh(new THREE.BoxGeometry(COLS + 0.9, 0.28, depth + 0.1), floorMat);
-    floor.position.set(0, -ROWS / 2 - 0.22, -0.1);
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(COLS + 1.05, 0.36, depth + 0.15), floorMat);
+    floor.position.set(0, -ROWS / 2 - 0.28, -0.12);
     this.wellGroup.add(floor);
 
     const rim = new THREE.Mesh(new THREE.BoxGeometry(COLS + 1.05, 0.1, 0.12), rimMat);
@@ -354,16 +368,16 @@ export class ThreeRenderer {
     if (!this.camera) return;
     const aspect = Math.max(0.2, this.cssW / Math.max(1, this.cssH));
     this.camera.aspect = aspect;
-    const wellH = ROWS + 2.2;
-    const wellW = COLS + 2.4;
+    const wellH = ROWS + 2.8;
+    const wellW = COLS + 2.6;
     const vFov = THREE.MathUtils.degToRad(this.camera.fov);
     const distV = (wellH / 2) / Math.tan(vFov / 2);
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
     const distH = (wellW / 2) / Math.tan(hFov / 2);
-    const dist = Math.max(distV, distH) * 1.08;
-    // leve ângulo de cima — arcade, não perspectiva confusa
-    this.camBase.set(0, 2.15, dist);
-    this.lookAt.set(0, -0.55, 0);
+    const dist = Math.max(distV, distH) * 1.18;
+    // ângulo de cima (poço 3D) sem distorcer o arcade
+    this.camBase.set(0, dist * 0.36, dist * 0.9);
+    this.lookAt.set(0, -1.15, 0);
     this.camera.position.copy(this.camBase);
     this.camera.lookAt(this.lookAt);
     this.camera.updateProjectionMatrix();
@@ -392,7 +406,7 @@ export class ThreeRenderer {
     if (!this.scene) return;
     const look = WELL[this.theme] || WELL.neon;
     this.scene.background.setHex(look.bg);
-    this.scene.fog = new THREE.FogExp2(look.fog, this.isLowEnd ? 0.028 : 0.018);
+    this.scene.fog = new THREE.FogExp2(look.fog, this.isLowEnd ? 0.016 : 0.009);
     if (this.hemi) {
       this.hemi.color.setHex(look.hemi);
       this.hemi.groundColor.setHex(look.hemiG);
@@ -739,12 +753,12 @@ export class ThreeRenderer {
       const gy = ghostY(game.board, game.active);
       if (gy !== game.active.y) {
         this.ghostMat.color.set(pal.color);
-        this.ghostMat.opacity = this.theme === "pixel" ? 0.4 : 0.26;
+        this.ghostMat.opacity = this.theme === "pixel" ? 0.5 : 0.4;
         const ghost = { ...game.active, y: gy };
         for (const { x, y } of cellsOf(ghost)) {
           const visY = y - HIDDEN;
           if (visY < 0 || visY >= ROWS) continue;
-          this.setInstance(this.ghostMesh, gn, colX(x), visYToWorld(visY), 0, 1, 1, 1, pal.color);
+          this.setInstance(this.ghostMesh, gn, colX(x), visYToWorld(visY), -0.12, 1, 1, 1, pal.color);
           gn += 1;
         }
       }
