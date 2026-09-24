@@ -94,13 +94,19 @@ Cada publicação troca o parâmetro `?v=` dos arquivos (hash do commit), para o
 
 ## Arquivos
 
-- `index.html` — tela e textos
-- `css/styles.css` — visual
+- `index.html` — tela, textos e importmap do Three.js (vendor local)
+- `css/styles.css` — visual, HUD, overlays
 - `js/engine.js` — regras (pontos, linhas, reserva, fim de jogo)
 - `js/pieces.js` — formas e cores
-- `js/render.js` — desenho no canvas
+- `js/render.js` — desenho Canvas 2D (também usado se WebGL falhar)
+- `js/render3d.js` — poço 3D em Three.js (baixo-poli)
+- `js/renderer.js` — escolhe 3D ou 2D automaticamente
+- `js/vendor/three.module.js` — Three.js local (sem CDN)
 - `js/input.js` — teclado e toque
 - `js/audio.js` — sons
+- `js/skins.js` — paletas Neon / Magma / CRT / Pixel
 - `js/main.js` — liga tudo
+
+O visual 3D usa o mesmo motor de regras. Se o aparelho não tiver WebGL, aparece um aviso em português e o jogo segue no canvas clássico.
 
 Feito para ser leve, estático e rápido — sem servidor próprio.

@@ -1,4 +1,4 @@
-import { DAS_MS, ARR_MS, SOFT_DROP_MS } from "./pieces.js?v=43-polish";
+import { DAS_MS, ARR_MS, SOFT_DROP_MS } from "./pieces.js?v=202609241920";
 
 /**
  * Teclado + toque sem disparo duplo.
