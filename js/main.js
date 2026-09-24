@@ -1,7 +1,7 @@
-import { Game, STATE } from "./engine.js?v=43-polish";
-import { AudioEngine } from "./audio.js?v=43-polish";
-import { Renderer } from "./render.js?v=43-polish";
-import { Input } from "./input.js?v=43-polish";
+import { Game, STATE } from "./engine.js?v=202609241900";
+import { AudioEngine } from "./audio.js?v=202609241900";
+import { createRenderer } from "./renderer.js?v=202609241900";
+import { Input } from "./input.js?v=202609241900";
 
 
 // iOS Safari: trava pinch / double-tap / scale (não dá pra "deszoomar" por JS)
@@ -154,12 +154,17 @@ const nextCanvases = [
 
 const holdFloat = document.getElementById("hold-float");
 
-const renderer = new Renderer(els.board, [
+const minisSpec = [
   { canvas: els.hold, kind: "hold" },
   { canvas: els.holdM, kind: "hold" },
   ...(holdFloat ? [{ canvas: holdFloat, kind: "hold" }] : []),
   ...nextCanvases.map((canvas) => ({ canvas, kind: "next", index: 0 })),
-]);
+];
+const created = await createRenderer(els.board, minisSpec, {
+  failEl: document.getElementById("webgl-fail"),
+});
+const renderer = created.renderer;
+els.board = created.canvas;
 renderer.minis.forEach((mini) => {
   if (mini.kind !== "next") return;
   const id = mini.canvas.id;

@@ -13,11 +13,18 @@
     <meta property="og:description" content="Arcade original, em português, para jogar no celular e no computador." />
     <meta property="og:type" content="website" />
     <title>TETROK</title>
-    <link rel="icon" href="assets/favicon.svg?v=43-polish" type="image/svg+xml" />
+    <link rel="icon" href="assets/favicon.svg?v=202609241900" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Nunito:wght@700;800;900&family=Press+Start+2P&family=Sora:wght@600;700;800&family=VT323&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/styles.css?v=43-polish" />
+    <link rel="stylesheet" href="css/styles.css?v=202609241900" />
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "./js/vendor/three.module.js?v=202609241900"
+      }
+    }
+    </script>
   </head>
   <body class="theme-neon layout-full">
     <div class="aurora" aria-hidden="true"></div>
@@ -54,6 +61,7 @@
 
         <main class="board-area">
           <div id="board-wrap">
+            <p id="webgl-fail" class="webgl-fail" hidden role="status"></p>
             <canvas id="board" width="300" height="600" role="img" aria-label="Tabuleiro do TETROK"></canvas>
             <div class="float-hud" aria-hidden="false">
               <div class="float-score">
@@ -168,6 +176,6 @@
       </div>
     </div>
 
-    <script type="module" src="js/main.js?v=43-polish"></script>
+    <script type="module" src="js/main.js?v=202609241900"></script>
   </body>
 </html>

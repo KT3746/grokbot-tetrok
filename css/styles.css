@@ -966,3 +966,81 @@ body.theme-pixel .tip-toast {
   .aurora { animation: none !important; }
   body.is-danger #board { transition: none; }
 }
+
+/* === Three.js visual layer === */
+.webgl-fail {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 8px;
+  z-index: 8;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(12, 8, 4, 0.92);
+  border: 1px solid rgba(251, 146, 60, 0.55);
+  color: #fed7aa;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-align: center;
+  pointer-events: none;
+}
+.webgl-fail[hidden] { display: none !important; }
+
+.well-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+}
+.well-toast {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(1.05rem, 4.6vw, 1.75rem);
+  text-align: center;
+  color: #fff6d2;
+  text-shadow: 0 0 24px rgba(103, 232, 249, 0.95);
+  max-width: 90%;
+}
+.well-toast.is-magma { color: #ffedd5; text-shadow: 0 0 24px rgba(249, 115, 22, 0.95); }
+.well-toast.is-crt {
+  color: #ffb000;
+  text-shadow: 0 0 20px rgba(255, 176, 0, 0.95);
+  font-family: VT323, monospace;
+}
+.well-toast.is-pixel {
+  color: #e2e8f0;
+  text-shadow: none;
+  font-family: "Press Start 2P", monospace;
+  font-size: clamp(0.55rem, 2.4vw, 0.8rem);
+}
+.well-pops {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, 0);
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(0.9rem, 3.5vw, 1.25rem);
+  color: #67e8f9;
+  text-shadow: 0 0 16px rgba(103, 232, 249, 0.9);
+  text-align: center;
+  pointer-events: none;
+}
+.well-pops small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.65em;
+  color: rgba(248, 250, 252, 0.85);
+  font-weight: 700;
+  text-shadow: none;
+}
+body.renderer-webgl #board { background: #050814; }
+body.theme-magma.renderer-webgl #board { background: #0a0402; }
+body.theme-crt.renderer-webgl #board { background: #050300; }
+body.theme-pixel.renderer-webgl #board { background: #0b1220; }
+body.renderer-webgl .float-hud { z-index: 5; }
+

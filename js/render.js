@@ -1,12 +1,21 @@
-import { COLS, ROWS, HIDDEN, PIECES, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=43-polish";
-import { ghostY } from "./engine.js?v=43-polish";
-import { skinColors, skinStyle } from "./skins.js?v=43-polish";
+import { COLS, ROWS, HIDDEN, PIECES, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202609241900";
+import { ghostY } from "./engine.js?v=202609241900";
+import { skinColors, skinStyle } from "./skins.js?v=202609241900";
 const MAX_DPR = 2.75;
 
+/** Canvas 2D — visual clássico e fallback se WebGL/Three.js falhar. */
 export class Renderer {
   constructor(boardCanvas, minis) {
-    this.board = boardCanvas;
-    this.bctx = boardCanvas.getContext("2d");
+    this.board = boardCanvas || null;
+    this.bctx = null;
+    if (boardCanvas) {
+      try {
+        this.bctx = boardCanvas.getContext("2d");
+      } catch (_) {
+        this.bctx = null;
+      }
+    }
+    this.mode = "canvas2d";
     this.minis = minis.map(({ canvas, kind, index }) => ({
       canvas,
       ctx: canvas.getContext("2d"),
@@ -37,7 +46,9 @@ export class Renderer {
   }
 
   resize(cssWidth, cssHeight) {
-    sizeCanvas(this.board, this.bctx, cssWidth, cssHeight, true);
+    if (this.board && this.bctx) {
+      sizeCanvas(this.board, this.bctx, cssWidth, cssHeight, true);
+    }
     this.syncMinis();
   }
 
@@ -328,7 +339,11 @@ export class Renderer {
   }
 
   draw(game) {
-    this.drawBoard(game);
+    if (this.bctx && this.board) this.drawBoard(game);
+    this.drawMinis(game);
+  }
+
+  drawMinis(game) {
     const holdDim = !game.canHold && game.state === "playing";
     const queue = game.queue || [];
     for (const mini of this.minis) {
@@ -541,6 +556,7 @@ export class Renderer {
 
   drawBoard(game) {
     const ctx = this.bctx;
+    if (!ctx || !this.board) return;
     const { w, h, dpr, inset, cw, ch } = this.metrics();
 
     ctx.save();
@@ -904,6 +920,8 @@ export class Renderer {
   }
 
 }
+
+export { Renderer as CanvasRenderer };
 
 function sizeCanvas(canvas, ctx, cssW, cssH, lockCss) {
   const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
