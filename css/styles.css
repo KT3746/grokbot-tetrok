@@ -90,7 +90,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .strip-next canvas { width: 40px; height: 40px; }
 
 .hex-btn {
-  width: 40px; height: 40px; border-radius: 10px;
+  width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-radius: 10px;
   border: 1.5px solid var(--panel-border);
   background: linear-gradient(160deg, rgba(15, 30, 55, 0.95), rgba(6, 12, 28, 0.95));
   color: #e0f2fe; font-size: 0.95rem;
@@ -119,10 +119,13 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   max-width: 100%;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden; /* evita sombra/HUD estourarem a página no iOS */
+  touch-action: none;
 }
 #board {
   display: block; max-width: 100%; max-height: 100%;
   border-radius: 12px; touch-action: none;
+  /* Toque cai no #board-wrap — canvas não rouba o gesto do HUD. */
+  pointer-events: none;
   box-shadow: 0 0 18px rgba(34, 211, 238, 0.3);
 }
 
@@ -781,7 +784,12 @@ body.theme-pixel .float-box {
   letter-spacing: 0.01em;
 }
 @media (prefers-reduced-motion: reduce) {
-  .hex-btn, .cta, .theme-swatch { transition: none; }
+  .hex-btn, .cta, .theme-swatch, .hex-pad, .circle-drop, .circle-rot, .tip-dismiss { transition: none; }
+  .hex-btn:active, .cta:active, .theme-swatch:active,
+  .hex-pad:active, .circle-drop:active, .circle-rot:active, .tip-dismiss:active {
+    transform: none !important;
+    filter: none !important;
+  }
 }
 
 
@@ -932,7 +940,8 @@ body.is-danger #board {
   background: linear-gradient(160deg, rgba(34, 211, 238, 0.25), rgba(6, 12, 28, 0.95));
   color: #e0f2fe;
   border-radius: 999px;
-  padding: 6px 14px;
+  padding: 10px 16px;
+  min-height: 44px;
   font-weight: 800;
   font-size: 0.72rem;
   letter-spacing: 0.06em;
@@ -1044,3 +1053,122 @@ body.theme-crt.renderer-webgl #board { background: #050300; }
 body.theme-pixel.renderer-webgl #board { background: #0b1220; }
 body.renderer-webgl .float-hud { z-index: 5; }
 
+
+
+/* === Mobile polish === */
+/* Alvos de polegar ≥ ~44pt nos pads */
+.hex-pad {
+  min-width: 44px;
+  min-height: 44px;
+}
+.circle-rot {
+  min-width: 48px;
+  min-height: 48px;
+}
+.circle-drop {
+  min-width: 60px;
+  min-height: 60px;
+}
+.cta, .linkish, .theme-swatch {
+  min-height: 44px;
+}
+
+/* Portrait estreito (~390px): HUD compacto, sem overflow */
+@media (orientation: portrait) and (max-width: 430px) {
+  .topbar {
+    gap: 4px;
+    padding: 4px 6px;
+  }
+  .brand-title {
+    font-size: clamp(0.85rem, 4.2vw, 1.05rem);
+  }
+  .chip {
+    padding: 3px 6px;
+  }
+  .chip strong {
+    font-size: 0.85rem;
+  }
+  .hex-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .float-score {
+    padding: 6px 8px;
+  }
+  .float-score strong {
+    font-size: clamp(1.05rem, 6vw, 1.35rem);
+  }
+  .float-meta, .float-best {
+    font-size: 0.48rem;
+  }
+  .float-side .float-box {
+    padding: 4px;
+  }
+  #next-float {
+    width: 48px !important;
+    height: 48px !important;
+  }
+  .gesture-hint {
+    font-size: 0.62rem;
+  }
+  .modal {
+    padding: 14px 14px 12px;
+    max-height: min(92dvh, 520px);
+    overflow: auto;
+  }
+}
+
+/* Paisagem baixa (~390px de altura) */
+@media (orientation: landscape) and (max-height: 430px) {
+  .topbar {
+    gap: 4px;
+    padding: 2px 6px;
+  }
+  .brand-title {
+    font-size: 0.85rem;
+  }
+  .hex-btn {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+  .float-hud {
+    font-size: 0.7rem;
+  }
+  .float-score {
+    padding: 4px 6px;
+  }
+  .float-score strong {
+    font-size: 1rem;
+  }
+  .cyber-pad {
+    padding: 0;
+  }
+  .hex-pad {
+    width: 44px;
+    height: 44px;
+  }
+  .circle-drop {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    min-height: 56px;
+  }
+  .circle-rot {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .modal {
+    padding: 12px;
+    max-height: min(92dvh, 340px);
+    overflow: auto;
+  }
+  .overlay-score strong {
+    font-size: 1.05rem;
+  }
+}
