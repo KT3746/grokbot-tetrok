@@ -4,10 +4,10 @@
  * Preview NEXT/HOLD continua no Canvas 2D (legível em miniatura).
  */
 import * as THREE from "three";
-import { COLS, ROWS, HIDDEN, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202609241920";
-import { ghostY } from "./engine.js?v=202609241920";
-import { skinColors } from "./skins.js?v=202609241920";
-import { CanvasRenderer } from "./render.js?v=202609241920";
+import { COLS, ROWS, HIDDEN, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202609280220";
+import { ghostY } from "./engine.js?v=202609280220";
+import { skinColors } from "./skins.js?v=202609280220";
+import { CanvasRenderer } from "./render.js?v=202609280220";
 
 const CELL = 1;
 const BOX = 0.86;
@@ -130,7 +130,7 @@ export class ThreeRenderer {
       alpha: false,
       powerPreference: this.isLowEnd ? "low-power" : "high-performance",
     });
-    const dprCap = this.lowFx ? 1 : 1.5;
+    const dprCap = this.isLowEnd || this.lowFx ? 1.25 : 1.5;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, dprCap));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = false;
@@ -387,7 +387,7 @@ export class ThreeRenderer {
     this.cssW = cssWidth;
     this.cssH = cssHeight;
     if (this.renderer) {
-      const dprCap = this.lowFx ? 1 : 1.5;
+      const dprCap = this.isLowEnd || this.lowFx ? 1.25 : 1.5;
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, dprCap));
       this.renderer.setSize(cssWidth, cssHeight, true);
       this.fitCamera();

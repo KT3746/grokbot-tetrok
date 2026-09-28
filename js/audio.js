@@ -308,7 +308,15 @@ export class AudioEngine {
     } catch (_) {}
   }
 
-  pause() {
+  /** Aba oculta / pausa: corta o AudioContext pra não vazar pad no fundo. */
+  suspend() {
+    try { this.pauseMusic(); } catch (_) {}
+    if (this.ctx && this.ctx.state === "running") {
+      try { this.ctx.suspend(); } catch (_) { /* ok */ }
+    }
+  }
+
+    pause() {
     try { this.pauseMusic(); } catch (_) {}
     try {
       this.tone({ freq: 330, dur: 0.08, type: "sine", vol: 0.08 });
@@ -317,6 +325,9 @@ export class AudioEngine {
   }
 
   resume() {
+    if (!this.muted && this.ctx && this.ctx.state === "suspended") {
+      try { this.ctx.resume(); } catch (_) { /* ok */ }
+    }
     this.tone({ freq: 247, dur: 0.07, type: "sine", vol: 0.07 });
     this.tone({ freq: 330, dur: 0.09, type: "sine", vol: 0.08, delay: 0.07 });
   }

@@ -1,4 +1,4 @@
-import { DAS_MS, ARR_MS, SOFT_DROP_MS } from "./pieces.js?v=202609241920";
+import { DAS_MS, ARR_MS, SOFT_DROP_MS } from "./pieces.js?v=202609280220";
 
 /**
  * Teclado + toque sem disparo duplo.
@@ -158,7 +158,9 @@ export class Input {
 
   onPointerDown(ev) {
     if (ev.pointerType === "mouse" && ev.button !== 0) return;
-    if (ev.target.closest && ev.target.closest("[data-action]")) return;
+    if (ev.target.closest && ev.target.closest(
+      "[data-action], .hex-btn, .toolbar, .chip, .overlay, .tip-toast, .cyber-pad, .cta, .linkish, .theme-swatch"
+    )) return;
     if (this.isBlocked()) return;
     ev.preventDefault();
     this.audio.unlock();

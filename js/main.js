@@ -1,7 +1,7 @@
-import { Game, STATE } from "./engine.js?v=202609241920";
-import { AudioEngine } from "./audio.js?v=202609241920";
-import { createRenderer } from "./renderer.js?v=202609241920";
-import { Input } from "./input.js?v=202609241920";
+import { Game, STATE } from "./engine.js?v=202609280220";
+import { AudioEngine } from "./audio.js?v=202609280220";
+import { createRenderer } from "./renderer.js?v=202609280220";
+import { Input } from "./input.js?v=202609280220";
 
 
 // iOS Safari: trava pinch / double-tap / scale (não dá pra "deszoomar" por JS)
@@ -330,6 +330,7 @@ const game = new Game({
   },
   onPause: () => {
     try { audio.pause(); } catch (_) {}
+    try { audio.suspend(); } catch (_) {}
     showOverlay("Pausa", "Cafézinho? Quando quiser, bora de novo.", false);
     // na pausa: esconde seletor de tema pra não parecer menu inicial
     if (els.themePicker) els.themePicker.hidden = true;
@@ -428,9 +429,10 @@ const buttons = [
 
 const input = new Input(game, audio, {
   onPause: handlePauseButton,
-  boardEl: els.board,
+  /* Canvas usa pointer-events:none — toque cai em #board-wrap; HUD fica de fora. */
+  boardEl: els.wrap || els.board,
   buttons,
-  isBlocked: () => tutorialOpen,
+  isBlocked: () => tutorialOpen || document.hidden,
 });
 
 els.btnPlay.addEventListener("click", () => {
@@ -501,16 +503,19 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener("resize", layout);
 }
 
+/* Aba/app oculta mid-jogo: pausa + suspende áudio (mesmo bar 1945/KART/LUTA). */
 document.addEventListener("visibilitychange", () => {
   window.clearTimeout(hidePauseTimer);
-  if (!document.hidden) return;
+  if (!document.hidden) {
+    /* Continuar na pausa: áudio só volta com resume / Continuar. */
+    return;
+  }
+  try { audio.suspend(); } catch (_) { /* ok */ }
   if (tutorialOpen) return;
   if (game.state !== STATE.PLAYING) return;
-  hidePauseTimer = window.setTimeout(() => {
-    if (document.hidden && game.state === STATE.PLAYING && !tutorialOpen) {
-      game.togglePause();
-    }
-  }, 450);
+  try {
+    game.togglePause();
+  } catch (_) { /* ok */ }
 });
 
 
@@ -576,6 +581,12 @@ syncHud();
 requestAnimationFrame(loop);
 
 function loop(now) {
+  /* Aba oculta: não simula nem renderiza (dt efetivo = 0 / sem gravidade). */
+  if (document.hidden) {
+    last = now;
+    requestAnimationFrame(loop);
+    return;
+  }
   const dt = Math.min(48, now - last);
   last = now;
   try {
