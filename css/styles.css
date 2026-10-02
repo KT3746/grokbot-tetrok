@@ -1130,10 +1130,10 @@ body.renderer-webgl .float-hud { z-index: 5; }
     font-size: 0.85rem;
   }
   .hex-btn {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
   }
   .float-hud {
     font-size: 0.7rem;
@@ -1170,5 +1170,35 @@ body.renderer-webgl .float-hud { z-index: 5; }
   }
   .overlay-score strong {
     font-size: 1.05rem;
+  }
+}
+
+
+/* === Polish: line-clear juice (gated on prefers-reduced-motion) === */
+#board-wrap {
+  transform-origin: center center;
+}
+#board-wrap.is-line-clear {
+  animation: tetrok-clear-pop 0.38s ease-out;
+}
+#board-wrap.is-line-clear-big {
+  animation-name: tetrok-clear-pop-big;
+}
+@keyframes tetrok-clear-pop {
+  0% { filter: brightness(1.55) saturate(1.25); transform: scale(1.018); box-shadow: 0 0 28px rgba(103, 232, 249, 0.55); }
+  55% { filter: brightness(1.2); transform: scale(1.006); }
+  100% { filter: none; transform: none; box-shadow: none; }
+}
+@keyframes tetrok-clear-pop-big {
+  0% { filter: brightness(1.85) saturate(1.4); transform: scale(1.03); box-shadow: 0 0 40px rgba(255, 90, 210, 0.65); }
+  50% { filter: brightness(1.3); transform: scale(1.01); }
+  100% { filter: none; transform: none; box-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #board-wrap.is-line-clear,
+  #board-wrap.is-line-clear-big {
+    animation: none;
+    filter: brightness(1.18);
+    transition: filter 0.12s linear;
   }
 }

@@ -1,6 +1,6 @@
-import { COLS, ROWS, HIDDEN, PIECES, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202609280220";
-import { ghostY } from "./engine.js?v=202609280220";
-import { skinColors, skinStyle } from "./skins.js?v=202609280220";
+import { COLS, ROWS, HIDDEN, PIECES, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202610012306";
+import { ghostY } from "./engine.js?v=202610012306";
+import { skinColors, skinStyle } from "./skins.js?v=202610012306";
 const MAX_DPR = 2.75;
 
 /** Canvas 2D — visual clássico e fallback se WebGL/Three.js falhar. */
@@ -955,17 +955,29 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 
+function isCoarseOrNarrow() {
+  try {
+    if (window.matchMedia("(hover: none)").matches) return true;
+    if (window.matchMedia("(max-width: 900px)").matches) return true;
+  } catch (_) {}
+  return false;
+}
+
 function drawGhostCell(ctx, x, y, cw, ch, color, style) {
   const px = x * cw;
   const py = y * ch;
   const inset = Math.max(1.2, cw * 0.12);
   ctx.save();
-  ctx.globalAlpha = style === "pixel" ? 0.45 : 0.38;
+  /* Mobile: ghost mais visível (antes ~0.38 sumia no sol / OLED). */
+  const mobile = isCoarseOrNarrow();
+  ctx.globalAlpha = style === "pixel"
+    ? (mobile ? 0.72 : 0.45)
+    : (mobile ? 0.64 : 0.38);
   if (style === "pixel") {
     ctx.strokeStyle = color;
     ctx.lineWidth = Math.max(1.5, cw * 0.1);
     ctx.strokeRect(px + inset, py + inset, cw - inset * 2, ch - inset * 2);
-    ctx.globalAlpha = 0.12;
+    ctx.globalAlpha = mobile ? 0.22 : 0.12;
     ctx.fillStyle = color;
     ctx.fillRect(px + inset, py + inset, cw - inset * 2, ch - inset * 2);
   } else if (style === "crt") {
@@ -983,7 +995,7 @@ function drawGhostCell(ctx, x, y, cw, ch, color, style) {
     roundRect(ctx, px + inset, py + inset, cw - inset * 2, ch - inset * 2, r);
     ctx.stroke();
     ctx.shadowBlur = 0;
-    ctx.globalAlpha = 0.1;
+    ctx.globalAlpha = mobile ? 0.2 : 0.1;
     ctx.fillStyle = color;
     roundRect(ctx, px + inset, py + inset, cw - inset * 2, ch - inset * 2, r);
     ctx.fill();
