@@ -1,7 +1,7 @@
-import { Game, STATE } from "./engine.js?v=202610012306";
-import { AudioEngine } from "./audio.js?v=202610012306";
-import { createRenderer } from "./renderer.js?v=202610012306";
-import { Input } from "./input.js?v=202610012306";
+import { Game, STATE } from "./engine.js?v=202610020143";
+import { AudioEngine } from "./audio.js?v=202610020143";
+import { createRenderer } from "./renderer.js?v=202610020143";
+import { Input } from "./input.js?v=202610020143";
 
 
 // iOS Safari: trava pinch / double-tap / scale (não dá pra "deszoomar" por JS)
@@ -53,6 +53,7 @@ import { Input } from "./input.js?v=202610012306";
   }
 })();
 const BEST_KEY = "tetrok-recorde";
+const DAILY_KEY = "tetrok-diario";
 const HOWTO_KEY = "tetrok-como-jogar";
 const TIP_KEY = "tetrok-dica";
 const THEME_KEY = "tetrok-tema";
@@ -117,6 +118,11 @@ const els = {
   overlayTitle: document.getElementById("overlay-title"),
   overlayText: document.getElementById("overlay-text"),
   overlayScore: document.getElementById("overlay-score"),
+  overlayDaily: document.getElementById("overlay-daily"),
+  dailyScore: document.getElementById("stat-daily-score"),
+  dailyLines: document.getElementById("stat-daily-lines"),
+  nextQueue: document.getElementById("next-queue"),
+  nextFloatBox: document.getElementById("next-float-box"),
   btnPlay: document.getElementById("btn-play"),
   btnHome: document.getElementById("btn-home"),
   btnHomeOverlay: document.getElementById("btn-home-overlay"),
@@ -313,6 +319,7 @@ if (els.layoutPicker) {
 
 
 let best = readBest();
+let daily = readDaily();
 let hudScoreShown = 0;
 let hudScoreAnim = 0;
 let tutorialOpen = false;
@@ -354,10 +361,13 @@ const game = new Game({
   onLock: ({ hard, piece, dropCells, fromY }) => {
     if (!hard) audio.lock();
     renderer.spawnLock(Boolean(hard), piece, dropCells || 0, fromY);
+    if (hard) flashHardDrop(dropCells || 0);
   },
   onRotate: () => audio.rotate(),
   onHold: () => {
     audio.hold();
+    pulseHoldSlots();
+    pulseNextQueue();
     syncHud();
   },
   onLineClear: ({ count, label, rows, combo, b2b, perfect, gained }) => {
@@ -398,6 +408,7 @@ const game = new Game({
       best = snap.score;
       writeBest(best);
     }
+    const dailyHit = updateDaily(snap.score, snap.lines || game.lines || 0);
     const roast =
       snap.score < 500
         ? "Quase. A pilha fechou em cima de você."
@@ -407,7 +418,11 @@ const game = new Game({
             ? "Pressão alta. Você joga limpo."
             : "Élite. Isso aqui já é vitrine.";
     // overlay primeiro: audio não pode bloquear o fim de jogo
-    showOverlay("Game over!", roast, true, snap.score);
+    showOverlay("Fim de jogo", roast, true, snap.score, {
+      lines: snap.lines || game.lines || 0,
+      level: snap.level || game.level || 1,
+      dailyHit,
+    });
     try { renderer.gameOverFx(); } catch (_) {}
     try { audio.gameOver(); } catch (_) {}
     els.btnPause.textContent = "❚❚";
@@ -416,7 +431,7 @@ const game = new Game({
     els.btnPause.title = "Pausar";
     syncHud();
   },
-  onSpawn: () => { renderer.onSpawnFlash(); syncHud(); },
+  onSpawn: () => { renderer.onSpawnFlash(); pulseNextQueue(); syncHud(); },
 });
 
 const buttons = [
@@ -712,6 +727,8 @@ function syncHud() {
     if (els.comboWrap) els.comboWrap.hidden = c <= 1;
   }
   if (els.bestFloat) els.bestFloat.textContent = String(best || 0);
+  if (els.dailyScore) els.dailyScore.textContent = String(daily.score || 0);
+  if (els.dailyLines) els.dailyLines.textContent = String(daily.lines || 0);
   // destaque se bateu recorde na partida
   if (els.scoreFloat && best > 0 && game.score >= best) {
     els.scoreFloat.classList.add("is-record");
@@ -778,23 +795,29 @@ function finishHowTo() {
 }
 
 function showStart() {
+  daily = readDaily();
   showOverlay("TETROK", "Encaixe. Limpe. Suba de nível.", false);
   els.btnPlay.textContent = "Jogar!";
-  if (best > 0) {
+  if (best > 0 || daily.score > 0) {
     els.overlayScore.hidden = false;
-    els.overlayScore.innerHTML = `<span>Recorde</span><strong>${best}</strong><span>Meta</span><strong>${Math.ceil(best * 1.25)}</strong>`;
+    const meta = best > 0
+      ? `<span>Recorde</span><strong>${best}</strong><span>Meta</span><strong>${Math.ceil(best * 1.25)}</strong>`
+      : `<span>Recorde</span><strong>0</strong><span>Meta</span><strong>500</strong>`;
+    els.overlayScore.innerHTML = meta;
   } else {
     els.overlayScore.hidden = true;
   }
+  renderDailyBanner(false);
   if (els.themePicker) els.themePicker.hidden = false;
   if (els.layoutPicker) els.layoutPicker.hidden = false;
   if (els.btnHomeOverlay) els.btnHomeOverlay.hidden = true;
 }
 
-function showOverlay(title, text, again, score) {
+function showOverlay(title, text, again, score, extra) {
   els.overlay.hidden = false;
   els.overlay.removeAttribute("hidden");
   els.overlay.style.display = "grid";
+  els.overlay.classList.toggle("is-gameover", !!again);
   els.overlayTitle.textContent = title;
   els.overlayText.textContent = text;
   els.overlayText.hidden = !text;
@@ -812,9 +835,29 @@ function showOverlay(title, text, again, score) {
   }
   if (typeof score === "number") {
     els.overlayScore.hidden = false;
-    els.overlayScore.innerHTML = `<span>Pontos</span><strong>${score}</strong><span>Recorde</span><strong>${best}</strong>`;
+    const lines = extra && typeof extra.lines === "number" ? extra.lines : game.lines;
+    const level = extra && typeof extra.level === "number" ? extra.level : game.level;
+    const newRec = score >= best && score > 0;
+    els.overlayScore.innerHTML =
+      `<span>Pontos</span><strong class="${newRec ? "is-new-rec" : ""}">${score}</strong>` +
+      `<span>Recorde</span><strong>${best}</strong>` +
+      `<span>Linhas</span><strong>${lines}</strong>` +
+      `<span>Nível</span><strong>${level}</strong>`;
+    renderDailyBanner(!!(extra && extra.dailyHit), true);
+  } else if (!again) {
+    /* start/pause: daily banner handled by caller */
   } else {
     els.overlayScore.hidden = true;
+    if (els.overlayDaily) {
+      els.overlayDaily.hidden = true;
+      els.overlayDaily.setAttribute("hidden", "");
+    }
+  }
+  if (game.state === STATE.PAUSED && typeof score !== "number") {
+    if (els.overlayDaily) {
+      els.overlayDaily.hidden = true;
+      els.overlayDaily.setAttribute("hidden", "");
+    }
   }
   els.app.classList.add("is-overlay");
 }
@@ -823,7 +866,13 @@ function hideOverlay() {
   els.overlay.hidden = true;
   els.overlay.setAttribute("hidden", "");
   els.overlay.style.display = "none";
+  els.overlay.classList.remove("is-gameover");
   els.app.classList.remove("is-overlay");
+  if (els.overlayDaily) {
+    els.overlayDaily.hidden = true;
+    els.overlayDaily.setAttribute("hidden", "");
+    els.overlayDaily.classList.remove("is-hit");
+  }
 }
 
 function layoutIfNeeded() {
@@ -867,6 +916,120 @@ function layout() {
   w = Math.floor(w);
   h = Math.floor(h);
   renderer.resize(w, h);
+}
+
+/** Data civil em América/São_Paulo (YYYY-MM-DD). */
+function brtDateKey() {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+  } catch {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+}
+
+function readDaily() {
+  try {
+    const raw = localStorage.getItem(DAILY_KEY);
+    if (!raw) return { date: brtDateKey(), score: 0, lines: 0 };
+    const parsed = JSON.parse(raw);
+    const today = brtDateKey();
+    if (!parsed || parsed.date !== today) return { date: today, score: 0, lines: 0 };
+    return {
+      date: today,
+      score: Number(parsed.score) || 0,
+      lines: Number(parsed.lines) || 0,
+    };
+  } catch {
+    return { date: brtDateKey(), score: 0, lines: 0 };
+  }
+}
+
+function writeDaily(data) {
+  try {
+    localStorage.setItem(DAILY_KEY, JSON.stringify({
+      date: data.date || brtDateKey(),
+      score: Number(data.score) || 0,
+      lines: Number(data.lines) || 0,
+    }));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Atualiza recorde/linhas do dia. Retorna true se bateu recorde diário de pontos. */
+function updateDaily(score, lines) {
+  daily = readDaily();
+  let hit = false;
+  if (score > (daily.score || 0)) {
+    daily.score = score;
+    hit = true;
+  }
+  if (lines > (daily.lines || 0)) daily.lines = lines;
+  writeDaily(daily);
+  return hit;
+}
+
+function renderDailyBanner(highlight, forceShow) {
+  if (!els.overlayDaily) return;
+  daily = readDaily();
+  const show = forceShow || daily.score > 0 || daily.lines > 0;
+  if (!show) {
+    els.overlayDaily.hidden = true;
+    els.overlayDaily.setAttribute("hidden", "");
+    return;
+  }
+  els.overlayDaily.hidden = false;
+  els.overlayDaily.removeAttribute("hidden");
+  els.overlayDaily.classList.toggle("is-hit", !!highlight);
+  const tip = highlight ? "Novo recorde de hoje! " : "";
+  els.overlayDaily.innerHTML =
+    `<span class="daily-label">${tip}Hoje (BRT)</span>` +
+    `<strong>${daily.score || 0}</strong> pts · ` +
+    `<strong>${daily.lines || 0}</strong> linhas`;
+}
+
+function pulseNextQueue() {
+  const nodes = [els.nextQueue, els.nextFloatBox, document.querySelector(".strip-next")].filter(Boolean);
+  for (const el of nodes) {
+    el.classList.remove("is-queue-tick");
+    void el.offsetWidth;
+    el.classList.add("is-queue-tick");
+  }
+  window.setTimeout(() => {
+    for (const el of nodes) el.classList.remove("is-queue-tick");
+  }, prefersReducedMotion() ? 140 : 420);
+}
+
+function pulseHoldSlots() {
+  const nodes = [els.holdSlot, els.holdSlotFloat].filter(Boolean);
+  for (const el of nodes) {
+    el.classList.remove("is-hold-juice");
+    void el.offsetWidth;
+    el.classList.add("is-hold-juice");
+  }
+  window.setTimeout(() => {
+    for (const el of nodes) el.classList.remove("is-hold-juice");
+  }, prefersReducedMotion() ? 120 : 380);
+}
+
+/** Flash no poço ao hard-drop — reduzido se prefers-reduced-motion. */
+function flashHardDrop(dropCells) {
+  const el = els.wrap;
+  if (!el) return;
+  el.classList.remove("is-hard-drop", "is-hard-drop-big");
+  void el.offsetWidth;
+  el.classList.add("is-hard-drop");
+  if ((dropCells || 0) >= 12) el.classList.add("is-hard-drop-big");
+  const ms = prefersReducedMotion() ? 110 : 320;
+  window.setTimeout(() => {
+    el.classList.remove("is-hard-drop", "is-hard-drop-big");
+  }, ms);
 }
 
 function readBest() {
