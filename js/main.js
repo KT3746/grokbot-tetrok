@@ -1,7 +1,7 @@
-import { Game, STATE } from "./engine.js?v=202609280220";
-import { AudioEngine } from "./audio.js?v=202609280220";
-import { createRenderer } from "./renderer.js?v=202609280220";
-import { Input } from "./input.js?v=202609280220";
+import { Game, STATE } from "./engine.js?v=202610012306";
+import { AudioEngine } from "./audio.js?v=202610012306";
+import { createRenderer } from "./renderer.js?v=202610012306";
+import { Input } from "./input.js?v=202610012306";
 
 
 // iOS Safari: trava pinch / double-tap / scale (não dá pra "deszoomar" por JS)
@@ -324,9 +324,9 @@ const game = new Game({
   onScore: syncHud,
   onStart: () => {
     hideOverlay();
-    dismissTip(true);
     hudScoreShown = game.score;
     syncHud();
+    showTipForFirstMinute();
   },
   onPause: () => {
     try { audio.pause(); } catch (_) {}
@@ -363,6 +363,7 @@ const game = new Game({
   onLineClear: ({ count, label, rows, combo, b2b, perfect, gained }) => {
     try { audio.lineClear(count, combo || 0); } catch (_) {}
     renderer.spawnClear(rows, game.board, count);
+    flashBoardClear(count);
     let tip = label;
     if (combo > 1) tip = `${label}  ·  Combo x${combo}`;
     if (b2b) tip = tip.includes("B2B") ? tip : `B2B · ${tip}`;
@@ -433,11 +434,11 @@ const input = new Input(game, audio, {
   boardEl: els.wrap || els.board,
   buttons,
   isBlocked: () => tutorialOpen || document.hidden,
+  onAction: () => dismissTip(true),
 });
 
 els.btnPlay.addEventListener("click", () => {
   audio.unlock();
-  dismissTip(true);
   if (game.state === STATE.OVER || game.state === STATE.READY) {
     game.start();
     audio.start();
@@ -540,6 +541,7 @@ if (els.btnMute) {
   syncMuteBtn();
 }
 
+let tipTimer = 0;
 function readTipSeen() {
   try { return localStorage.getItem(TIP_KEY) === "1"; } catch { return false; }
 }
@@ -547,6 +549,8 @@ function writeTipSeen() {
   try { localStorage.setItem(TIP_KEY, "1"); } catch {}
 }
 function dismissTip(persist) {
+  window.clearTimeout(tipTimer);
+  tipTimer = 0;
   if (els.tipToast) {
     els.tipToast.hidden = true;
     els.tipToast.setAttribute("hidden", "");
@@ -554,13 +558,46 @@ function dismissTip(persist) {
   if (persist) writeTipSeen();
 }
 function showTipIfNeeded() {
+  /* Boot: não mostra ainda — tip do 1º minuto entra ao começar a partida. */
   if (!els.tipToast) return;
-  if (readTipSeen()) {
-    dismissTip(false);
-    return;
+  if (readTipSeen()) dismissTip(false);
+  else {
+    els.tipToast.hidden = true;
+    els.tipToast.setAttribute("hidden", "");
   }
+}
+/** Tip PT-BR no 1º minuto: some na 1ª ação ou após ~60s; localStorage uma vez. */
+function showTipForFirstMinute() {
+  if (!els.tipToast || readTipSeen()) return;
   els.tipToast.hidden = false;
   els.tipToast.removeAttribute("hidden");
+  window.clearTimeout(tipTimer);
+  tipTimer = window.setTimeout(() => dismissTip(true), 60000);
+}
+function prefersReducedMotion() {
+  try {
+    return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  } catch {
+    return false;
+  }
+}
+/** Flash/pop no poço ao limpar linha — sem animação se prefers-reduced-motion. */
+function flashBoardClear(count) {
+  const el = els.wrap;
+  if (!el) return;
+  el.classList.remove("is-line-clear", "is-line-clear-big");
+  void el.offsetWidth;
+  el.classList.add("is-line-clear");
+  if (count >= 4) el.classList.add("is-line-clear-big");
+  if (prefersReducedMotion()) {
+    window.setTimeout(() => {
+      el.classList.remove("is-line-clear", "is-line-clear-big");
+    }, 120);
+    return;
+  }
+  window.setTimeout(() => {
+    el.classList.remove("is-line-clear", "is-line-clear-big");
+  }, 420);
 }
 if (els.btnTipDismiss) {
   els.btnTipDismiss.addEventListener("click", (ev) => {

@@ -4,10 +4,10 @@
  * Preview NEXT/HOLD continua no Canvas 2D (legível em miniatura).
  */
 import * as THREE from "three";
-import { COLS, ROWS, HIDDEN, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202609280220";
-import { ghostY } from "./engine.js?v=202609280220";
-import { skinColors } from "./skins.js?v=202609280220";
-import { CanvasRenderer } from "./render.js?v=202609280220";
+import { COLS, ROWS, HIDDEN, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202610012306";
+import { ghostY } from "./engine.js?v=202610012306";
+import { skinColors } from "./skins.js?v=202610012306";
+import { CanvasRenderer } from "./render.js?v=202610012306";
 
 const CELL = 1;
 const BOX = 0.86;
@@ -753,7 +753,16 @@ export class ThreeRenderer {
       const gy = ghostY(game.board, game.active);
       if (gy !== game.active.y) {
         this.ghostMat.color.set(pal.color);
-        this.ghostMat.opacity = this.theme === "pixel" ? 0.5 : 0.4;
+        {
+          let mobile = false;
+          try {
+            mobile = window.matchMedia("(hover: none)").matches
+              || window.matchMedia("(max-width: 900px)").matches;
+          } catch (_) {}
+          this.ghostMat.opacity = this.theme === "pixel"
+            ? (mobile ? 0.72 : 0.5)
+            : (mobile ? 0.62 : 0.4);
+        }
         const ghost = { ...game.active, y: gy };
         for (const { x, y } of cellsOf(ghost)) {
           const visY = y - HIDDEN;

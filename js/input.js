@@ -1,14 +1,15 @@
-import { DAS_MS, ARR_MS, SOFT_DROP_MS } from "./pieces.js?v=202609280220";
+import { DAS_MS, ARR_MS, SOFT_DROP_MS } from "./pieces.js?v=202610012306";
 
 /**
  * Teclado + toque sem disparo duplo.
  * Usa Pointer Events (um único caminho para mouse, caneta e dedo).
  */
 export class Input {
-  constructor(game, audio, { onPause, boardEl, buttons, isBlocked }) {
+  constructor(game, audio, { onPause, boardEl, buttons, isBlocked, onAction }) {
     this.game = game;
     this.audio = audio;
     this.onPause = onPause;
+    this.onAction = onAction || (() => {});
     this.isBlocked = isBlocked || (() => false);
     this.boardEl = boardEl;
     this.held = new Map();
@@ -76,26 +77,32 @@ export class Input {
 
   fire(action, first) {
     const g = this.game;
+    let did = false;
     if (action === "left") {
-      if (g.move(-1)) this.audio.move();
+      if (g.move(-1)) { this.audio.move(); did = true; }
     } else if (action === "right") {
-      if (g.move(1)) this.audio.move();
+      if (g.move(1)) { this.audio.move(); did = true; }
     } else if (action === "soft") {
       g.softDrop();
+      did = true;
     } else if (action === "hard") {
       if (first && this.hardDropArmed) {
         this.hardDropArmed = false;
         g.hardDrop();
         this.audio.hardDrop();
+        did = true;
       }
     } else if (action === "rotR") {
-      if (first) g.rotate(1);
+      if (first) { g.rotate(1); did = true; }
     } else if (action === "rotL") {
-      if (first) g.rotate(-1);
+      if (first) { g.rotate(-1); did = true; }
     } else if (action === "hold") {
       // HOLD desligado no modo essencial (sem UI)
     } else if (action === "pause") {
       if (first) this.onPause();
+    }
+    if (did && first) {
+      try { this.onAction(action); } catch (_) { /* tip dismiss etc */ }
     }
   }
 
@@ -205,14 +212,17 @@ export class Input {
     if (absX >= cellPx * 0.32 && absX > absY * 0.8) {
       const dir = this.swipe.accX > 0 ? 1 : -1;
       const steps = Math.max(1, Math.round(absX / (cellPx * 0.85)));
+      let moved = false;
       for (let i = 0; i < steps; i++) {
-        if (this.game.move(dir)) this.audio.move();
+        if (this.game.move(dir)) { this.audio.move(); moved = true; }
       }
+      if (moved) { try { this.onAction(dir > 0 ? "right" : "left"); } catch (_) {} }
       this.swipe.accX = 0;
       this.swipe.accY *= 0.25;
     } else if (this.swipe.accY >= cellPx * 0.3 && absY > absX * 0.8) {
       const steps = Math.max(1, Math.round(this.swipe.accY / (cellPx * 0.48)));
       for (let i = 0; i < steps; i++) this.game.softDrop();
+      try { this.onAction("soft"); } catch (_) {}
       this.swipe.accY = 0;
       this.swipe.accX *= 0.25;
     }
@@ -227,13 +237,17 @@ export class Input {
     this.swipe = null;
 
     if (!sx.moved && Math.hypot(dx, dy) < 14) {
-      if (this.game.rotate(1)) this.audio.rotate();
+      if (this.game.rotate(1)) {
+        this.audio.rotate();
+        try { this.onAction("rotR"); } catch (_) {}
+      }
       return;
     }
     // swipe pra cima = queda rápida
     if (dy < -cellPx * 0.58 && Math.abs(dy) > Math.abs(dx) * 1.05) {
       this.game.hardDrop();
       this.audio.hardDrop();
+      try { this.onAction("hard"); } catch (_) {}
     }
   }
 }
