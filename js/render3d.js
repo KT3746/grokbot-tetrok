@@ -4,10 +4,10 @@
  * Preview NEXT/HOLD continua no Canvas 2D (legível em miniatura).
  */
 import * as THREE from "three";
-import { COLS, ROWS, HIDDEN, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202610020143";
-import { ghostY } from "./engine.js?v=202610020143";
-import { skinColors } from "./skins.js?v=202610020143";
-import { CanvasRenderer } from "./render.js?v=202610020143";
+import { COLS, ROWS, HIDDEN, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202610052030";
+import { ghostY } from "./engine.js?v=202610052030";
+import { skinColors } from "./skins.js?v=202610052030";
+import { CanvasRenderer } from "./render.js?v=202610052030";
 
 const CELL = 1;
 const BOX = 0.86;
@@ -368,16 +368,45 @@ export class ThreeRenderer {
     if (!this.camera) return;
     const aspect = Math.max(0.2, this.cssW / Math.max(1, this.cssH));
     this.camera.aspect = aspect;
-    const wellH = ROWS + 2.8;
-    const wellW = COLS + 2.6;
-    const vFov = THREE.MathUtils.degToRad(this.camera.fov);
-    const distV = (wellH / 2) / Math.tan(vFov / 2);
-    const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
-    const distH = (wellW / 2) / Math.tan(hFov / 2);
-    const dist = Math.max(distV, distH) * 1.18;
-    // ângulo de cima (poço 3D) sem distorcer o arcade
-    this.camBase.set(0, dist * 0.36, dist * 0.9);
-    this.lookAt.set(0, -1.15, 0);
+    // Wave 3: enquadramento numérico — projeta as quinas do poço e ajusta
+    // distância + alvo pra ele ocupar a tela toda (no celular sobrava ~20% embaixo).
+    const dir = new THREE.Vector3(0, 0.36, 0.9).normalize();
+    const hx = COLS / 2 + 0.6;
+    const yTop = ROWS / 2 + 0.45;
+    const yBot = -ROWS / 2 - 0.5;
+    const corners = [];
+    for (const x of [-hx, hx]) {
+      for (const y of [yBot, yTop]) {
+        for (const z of [-1.0, 0.6]) corners.push(new THREE.Vector3(x, y, z));
+      }
+    }
+    // margem: um pouco mais em cima pro HUD flutuante não cobrir a boca do poço
+    const fillX = 0.97;
+    const fillY = 0.95;
+    let dist = 30;
+    let lookY = -0.6;
+    const v = new THREE.Vector3();
+    for (let i = 0; i < 6; i++) {
+      this.lookAt.set(0, lookY, 0);
+      this.camera.position.copy(this.lookAt).addScaledVector(dir, dist);
+      this.camera.lookAt(this.lookAt);
+      this.camera.updateProjectionMatrix();
+      this.camera.updateMatrixWorld(true);
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const c of corners) {
+        v.copy(c).project(this.camera);
+        minX = Math.min(minX, v.x); maxX = Math.max(maxX, v.x);
+        minY = Math.min(minY, v.y); maxY = Math.max(maxY, v.y);
+      }
+      const k = Math.max((maxX - minX) / (2 * fillX), (maxY - minY) / (2 * fillY));
+      // centra no Y (NDC → mundo aproximado pela altura visível no alvo)
+      const visH = 2 * dist * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2);
+      lookY += ((minY + maxY) / 2) * (visH / 2) * 0.9;
+      dist *= k;
+      if (!Number.isFinite(dist) || dist < 5) dist = 30;
+    }
+    this.lookAt.set(0, lookY, 0);
+    this.camBase.copy(this.lookAt).addScaledVector(dir, dist);
     this.camera.position.copy(this.camBase);
     this.camera.lookAt(this.lookAt);
     this.camera.updateProjectionMatrix();

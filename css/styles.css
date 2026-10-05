@@ -1322,3 +1322,135 @@ body.renderer-webgl .float-hud { z-index: 5; }
     box-shadow: none;
   }
 }
+
+
+/* === Wave 3 (2026-10-05): HUD limpo, barra de nível, recorde ao vivo, contagem, toque === */
+/* bug: combo vazio aparecia como pílula fantasma (display sobrescrevia [hidden]) */
+.combo-badge[hidden] { display: none !important; }
+/* NV · LIN numa linha só (antes quebrava em 4 linhas) */
+.float-score .float-meta span { display: inline; font-size: inherit; letter-spacing: 0.06em; }
+.float-score .float-meta { white-space: nowrap; }
+
+.float-score .lvl-track {
+  display: block;
+  position: relative;
+  height: 5px;
+  margin: 5px 0 2px;
+  border-radius: 999px;
+  background: rgba(125, 211, 252, 0.16);
+  overflow: hidden;
+}
+.lvl-track i {
+  position: absolute; inset: 0 auto 0 0;
+  width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #22d3ee, #a78bfa);
+  box-shadow: 0 0 8px rgba(103, 232, 249, 0.7);
+  transition: width 0.35s ease-out;
+}
+.float-score .lvl-left {
+  display: block;
+  font-size: 0.48rem; font-weight: 700; letter-spacing: 0.03em;
+  color: rgba(203, 213, 225, 0.85);
+  white-space: nowrap;
+}
+.lvl-left b { color: #e0f2fe; font-weight: 800; }
+.float-score .float-chase {
+  display: block;
+  margin-top: 1px;
+  font-size: 0.5rem; font-weight: 800; letter-spacing: 0.04em;
+  color: #fde68a;
+  white-space: nowrap;
+}
+.float-score .float-chase[hidden] { display: none; }
+.float-chase b { font-variant-numeric: tabular-nums; }
+.float-chase::before { content: "▲ "; font-size: 0.85em; }
+body.theme-magma .lvl-track i { background: linear-gradient(90deg, #f97316, #ef4444); box-shadow: 0 0 8px rgba(249,115,22,0.7); }
+body.theme-crt .lvl-track i { background: #ffb000; box-shadow: 0 0 8px rgba(255,176,0,0.7); }
+body.theme-pixel .lvl-track { border-radius: 0; background: rgba(15,23,42,0.9); outline: 1px solid #000; }
+body.theme-pixel .lvl-track i { border-radius: 0; background: #22c55e; box-shadow: none; }
+
+/* Contagem 3·2·1·VAI! */
+.countdown {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  z-index: 7;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, rgba(2, 8, 20, 0.15), rgba(2, 8, 20, 0.55));
+}
+.countdown[hidden] { display: none !important; }
+.countdown span {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(4.5rem, 30vw, 8rem);
+  line-height: 1;
+  color: #e0f2fe;
+  text-shadow: 0 0 28px rgba(103, 232, 249, 0.95), 0 6px 0 rgba(2, 8, 20, 0.6);
+}
+.countdown.is-go span { color: #fde047; font-size: clamp(3.4rem, 22vw, 6rem); text-shadow: 0 0 32px rgba(250, 204, 21, 0.95), 0 6px 0 rgba(2, 8, 20, 0.6); }
+.countdown.is-tick span { animation: tetrok-count 0.4s cubic-bezier(.2, 1.4, .4, 1); }
+.countdown.is-out { opacity: 0; transition: opacity 0.25s ease-out; }
+@keyframes tetrok-count {
+  0% { transform: scale(1.9); opacity: 0; }
+  60% { transform: scale(0.94); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+body.theme-magma .countdown span { color: #ffedd5; text-shadow: 0 0 28px rgba(249, 115, 22, 0.95), 0 6px 0 rgba(0,0,0,0.6); }
+body.theme-crt .countdown span { color: #ffb000; text-shadow: 0 0 24px rgba(255, 176, 0, 0.95); }
+body.theme-pixel .countdown span { color: #fde047; text-shadow: 4px 4px 0 #000; font-size: clamp(2.6rem, 16vw, 4.5rem); }
+
+/* Toque responde: onda onde o dedo encostou */
+.touch-fx {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 4;
+}
+.touch-ring {
+  position: absolute;
+  width: 56px; height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: 50%;
+  border: 2px solid rgba(165, 243, 252, 0.9);
+  box-shadow: 0 0 14px rgba(103, 232, 249, 0.6), inset 0 0 10px rgba(103, 232, 249, 0.35);
+  animation: tetrok-ring 0.45s ease-out forwards;
+}
+.touch-ring.is-tap-miss { border-color: rgba(248, 113, 113, 0.85); box-shadow: 0 0 10px rgba(248, 113, 113, 0.5); }
+.touch-ring.is-swipe-up {
+  width: 70px; height: 70px; margin: -35px 0 0 -35px;
+  border-color: rgba(253, 224, 71, 0.95);
+  box-shadow: 0 0 18px rgba(250, 204, 21, 0.7);
+}
+@keyframes tetrok-ring {
+  0% { transform: scale(0.35); opacity: 1; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+body.theme-magma .touch-ring:not(.is-tap-miss) { border-color: rgba(253, 186, 116, 0.95); box-shadow: 0 0 14px rgba(249, 115, 22, 0.6); }
+body.theme-crt .touch-ring:not(.is-tap-miss) { border-color: rgba(255, 201, 51, 0.95); box-shadow: 0 0 12px rgba(255, 176, 0, 0.6); }
+body.theme-pixel .touch-ring { border-radius: 0; border-width: 3px; box-shadow: none; }
+
+/* Recorde batido no meio da partida */
+.confetti {
+  position: absolute; top: -12px;
+  width: 7px; height: 12px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: tetrok-confetti 1.35s cubic-bezier(.25, .6, .4, 1) forwards;
+}
+@keyframes tetrok-confetti {
+  0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+  75% { opacity: 1; }
+  100% { transform: translate(var(--dx, 0), 72vh) rotate(var(--rot, 360deg)); opacity: 0; }
+}
+#board-wrap.is-record-hit #board {
+  animation: tetrok-record-glow 1.3s ease-out;
+}
+@keyframes tetrok-record-glow {
+  0% { box-shadow: 0 0 0 rgba(250, 204, 21, 0); }
+  25% { box-shadow: 0 0 36px rgba(250, 204, 21, 0.85); }
+  100% { box-shadow: 0 0 18px rgba(34, 211, 238, 0.3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .countdown.is-tick span, .touch-ring, .confetti, #board-wrap.is-record-hit #board { animation: none !important; }
+  .lvl-track i { transition: none; }
+}
