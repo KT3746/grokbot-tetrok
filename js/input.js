@@ -1,15 +1,17 @@
-import { DAS_MS, ARR_MS, SOFT_DROP_MS } from "./pieces.js?v=202610020143";
+import { DAS_MS, ARR_MS, SOFT_DROP_MS } from "./pieces.js?v=202610052030";
 
 /**
  * Teclado + toque sem disparo duplo.
  * Usa Pointer Events (um único caminho para mouse, caneta e dedo).
  */
 export class Input {
-  constructor(game, audio, { onPause, boardEl, buttons, isBlocked, onAction }) {
+  constructor(game, audio, { onPause, boardEl, buttons, isBlocked, onAction, onStartRequest, onGestureFx }) {
     this.game = game;
     this.audio = audio;
     this.onPause = onPause;
     this.onAction = onAction || (() => {});
+    this.onStartRequest = onStartRequest || null;
+    this.onGestureFx = onGestureFx || (() => {});
     this.isBlocked = isBlocked || (() => false);
     this.boardEl = boardEl;
     this.held = new Map();
@@ -146,8 +148,11 @@ export class Input {
 
     if ((this.game.state === "ready" || this.game.state === "over") && isPlayKey(key, code)) {
       ev.preventDefault();
-      this.game.start();
-      this.audio.start();
+      if (this.onStartRequest) this.onStartRequest();
+      else {
+        this.game.start();
+        this.audio.start();
+      }
       return;
     }
 
@@ -172,8 +177,11 @@ export class Input {
     ev.preventDefault();
     this.audio.unlock();
     if (this.game.state === "ready") {
-      this.game.start();
-      this.audio.start();
+      if (this.onStartRequest) this.onStartRequest();
+      else {
+        this.game.start();
+        this.audio.start();
+      }
       return;
     }
     if (this.game.state !== "playing") return;
@@ -237,10 +245,12 @@ export class Input {
     this.swipe = null;
 
     if (!sx.moved && Math.hypot(dx, dy) < 14) {
-      if (this.game.rotate(1)) {
+      const ok = this.game.rotate(1);
+      if (ok) {
         this.audio.rotate();
         try { this.onAction("rotR"); } catch (_) {}
       }
+      try { this.onGestureFx(ok ? "tap" : "tap-miss", ev.clientX, ev.clientY); } catch (_) {}
       return;
     }
     // swipe pra cima = queda rápida
@@ -248,6 +258,7 @@ export class Input {
       this.game.hardDrop();
       this.audio.hardDrop();
       try { this.onAction("hard"); } catch (_) {}
+      try { this.onGestureFx("swipe-up", ev.clientX, ev.clientY); } catch (_) {}
     }
   }
 }

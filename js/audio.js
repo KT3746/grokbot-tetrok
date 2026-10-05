@@ -332,6 +332,26 @@ export class AudioEngine {
     this.tone({ freq: 330, dur: 0.09, type: "sine", vol: 0.08, delay: 0.07 });
   }
 
+  /** Wave 3: bip da contagem 3-2-1 (go = "VAI!"). Acorda o contexto se a pausa suspendeu. */
+  countTick(go = false) {
+    if (!this.muted && this.ctx && this.ctx.state === "suspended") {
+      try { this.ctx.resume(); } catch (_) { /* ok */ }
+    }
+    if (go) {
+      this.tone({ freq: 880, dur: 0.16, type: "triangle", vol: 0.12 });
+      this.tone({ freq: 1320, dur: 0.14, type: "sine", vol: 0.07, delay: 0.05 });
+    } else {
+      this.tone({ freq: 587, dur: 0.07, type: "square", vol: 0.05, filter: 2200 });
+    }
+  }
+
+  /** Wave 3: fanfarra curta quando passa o recorde no meio da partida. */
+  record() {
+    [659, 784, 988, 1319].forEach((freq, i) => {
+      this.tone({ freq, dur: 0.16, type: "triangle", vol: 0.11, delay: i * 0.08 });
+    });
+  }
+
   start() {
     [392, 523, 659].forEach((freq, i) => {
       this.tone({ freq, dur: 0.12, type: "triangle", vol: 0.1, delay: i * 0.06 });

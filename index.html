@@ -13,15 +13,15 @@
     <meta property="og:description" content="Arcade original, em português, para jogar no celular e no computador." />
     <meta property="og:type" content="website" />
     <title>TETROK</title>
-    <link rel="icon" href="assets/favicon.svg?v=202610020143" type="image/svg+xml" />
+    <link rel="icon" href="assets/favicon.svg?v=202610052030" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Nunito:wght@700;800;900&family=Press+Start+2P&family=Sora:wght@600;700;800&family=VT323&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/styles.css?v=202610020143" />
+    <link rel="stylesheet" href="css/styles.css?v=202610052030" />
     <script type="importmap">
     {
       "imports": {
-        "three": "./js/vendor/three.module.js?v=202610020143"
+        "three": "./js/vendor/three.module.js?v=202610052030"
       }
     }
     </script>
@@ -63,12 +63,17 @@
           <div id="board-wrap">
             <p id="webgl-fail" class="webgl-fail" hidden role="status"></p>
             <canvas id="board" width="300" height="600" role="img" aria-label="Tabuleiro do TETROK"></canvas>
+            <div id="countdown" class="countdown" hidden aria-live="assertive"><span id="countdown-num">3</span></div>
+            <div id="touch-fx" class="touch-fx" aria-hidden="true"></div>
             <div class="float-hud" aria-hidden="false">
               <div class="float-score">
                 <span class="lbl-score">PONTOS</span>
                 <strong id="stat-score-float">0</strong>
                 <span class="float-meta"><span class="lbl-level">NV</span> <strong id="stat-level-float">1</strong> · <span class="lbl-lines">LIN</span> <strong id="stat-lines-float">0</strong></span>
+                <span class="lvl-track" aria-hidden="true"><i id="lvl-fill"></i></span>
+                <span class="lvl-left" id="lvl-left">faltam <b id="lvl-left-n">10</b> lin p/ NV <b id="lvl-next">2</b></span>
                 <span class="float-best">REC <strong id="stat-best-float">0</strong></span>
+                <span class="float-chase" id="float-chase" hidden>faltam <b id="stat-chase">0</b></span>
                 <span class="float-daily" id="float-daily" title="Recorde do dia (horário de Brasília)">HOJE <strong id="stat-daily-score">0</strong> · <strong id="stat-daily-lines">0</strong> lin</span>
                 <span id="combo-float" class="combo-badge" hidden>COMBO <strong id="stat-combo-float"></strong></span>
               </div>
@@ -178,6 +183,6 @@
       </div>
     </div>
 
-    <script type="module" src="js/main.js?v=202610020143"></script>
+    <script type="module" src="js/main.js?v=202610052030"></script>
   </body>
 </html>

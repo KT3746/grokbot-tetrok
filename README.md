@@ -4,7 +4,7 @@ Jogo de puzzle com peças que caem. É **original**: nomes, cores, textos e sons
 
 **Jogar online:** [https://kt3746.github.io/grokbot-tetrok/](https://kt3746.github.io/grokbot-tetrok/)
 
-Versão **wave 2**: meta diária (pontos/linhas, BRT, localStorage) PT-BR; polish da fila NEXT; flash de hard-drop + tela de fim de jogo mais clara (respeita reduced-motion). Cache-bust `?v=202610020143`.
+Versão **wave 3**: poço 3D maior no celular (enquadramento automático), contagem 3-2-1-VAI! ao começar e ao voltar da pausa, barra de nível ("faltam X linhas") e perseguição de recorde ao vivo com comemoração, onda + vibração no toque. Cache-bust `?v=202610052030`.
 
 > Se o link ainda não abrir, veja [Publicar no GitHub Pages](#publicar-no-github-pages) no final deste arquivo.
 

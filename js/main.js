@@ -1,7 +1,8 @@
-import { Game, STATE } from "./engine.js?v=202610020143";
-import { AudioEngine } from "./audio.js?v=202610020143";
-import { createRenderer } from "./renderer.js?v=202610020143";
-import { Input } from "./input.js?v=202610020143";
+import { Game, STATE } from "./engine.js?v=202610052030";
+import { AudioEngine } from "./audio.js?v=202610052030";
+import { createRenderer } from "./renderer.js?v=202610052030";
+import { Input } from "./input.js?v=202610052030";
+import { LINES_PER_LEVEL } from "./pieces.js?v=202610052030";
 
 
 // iOS Safari: trava pinch / double-tap / scale (não dá pra "deszoomar" por JS)
@@ -143,6 +144,14 @@ const els = {
   howtoDots: document.getElementById("howto-dots"),
   btnHowToNext: document.getElementById("btn-howto-next"),
   btnHowToSkip: document.getElementById("btn-howto-skip"),
+  lvlFill: document.getElementById("lvl-fill"),
+  lvlLeftN: document.getElementById("lvl-left-n"),
+  lvlNext: document.getElementById("lvl-next"),
+  chase: document.getElementById("float-chase"),
+  chaseN: document.getElementById("stat-chase"),
+  countdown: document.getElementById("countdown"),
+  countdownNum: document.getElementById("countdown-num"),
+  touchFx: document.getElementById("touch-fx"),
 };
 
 const audio = new AudioEngine();
@@ -326,11 +335,18 @@ let tutorialOpen = false;
 let tutorialStep = 0;
 let tutorialTimer = 0;
 let hidePauseTimer = 0;
+/* Wave 3: contagem 3-2-1 + perseguição de recorde ao vivo */
+let countingDown = false;
+let countdownTimers = [];
+let bestAtStart = 0;
+let recordCelebrated = false;
 
 const game = new Game({
   onScore: syncHud,
   onStart: () => {
     hideOverlay();
+    bestAtStart = best;
+    recordCelebrated = false;
     hudScoreShown = game.score;
     syncHud();
     showTipForFirstMinute();
@@ -448,19 +464,147 @@ const input = new Input(game, audio, {
   /* Canvas usa pointer-events:none — toque cai em #board-wrap; HUD fica de fora. */
   boardEl: els.wrap || els.board,
   buttons,
-  isBlocked: () => tutorialOpen || document.hidden,
+  isBlocked: () => tutorialOpen || countingDown || document.hidden,
   onAction: () => dismissTip(true),
+  onStartRequest: () => requestStart(),
+  onGestureFx: (kind, x, y) => touchFx(kind, x, y),
 });
 
 els.btnPlay.addEventListener("click", () => {
   audio.unlock();
   if (game.state === STATE.OVER || game.state === STATE.READY) {
-    game.start();
-    audio.start();
+    requestStart();
   } else if (game.state === STATE.PAUSED) {
-    game.start();
+    requestResume();
   }
 });
+
+/* ---------- Wave 3: contagem 3-2-1-VAI! (início e volta da pausa) ---------- */
+function clearCountdownTimers() {
+  for (const t of countdownTimers) window.clearTimeout(t);
+  countdownTimers = [];
+}
+
+function hideCountdown() {
+  if (!els.countdown) return;
+  els.countdown.hidden = true;
+  els.countdown.setAttribute("hidden", "");
+  els.countdown.classList.remove("is-go", "is-tick", "is-out");
+}
+
+/** Mostra 3·2·1·VAI! no poço e chama done() no fim. Resume é mais curto. */
+function runCountdown(done, { short = false } = {}) {
+  clearCountdownTimers();
+  if (!els.countdown || !els.countdownNum) { done(); return; }
+  countingDown = true;
+  const steps = short ? ["3", "2", "1"] : ["3", "2", "1", "VAI!"];
+  const stepMs = prefersReducedMotion() ? 320 : short ? 340 : 420;
+  els.countdown.classList.remove("is-out");
+  els.countdown.hidden = false;
+  els.countdown.removeAttribute("hidden");
+  steps.forEach((label, i) => {
+    countdownTimers.push(window.setTimeout(() => {
+      const go = label === "VAI!";
+      els.countdownNum.textContent = label;
+      els.countdown.classList.toggle("is-go", go);
+      els.countdown.classList.remove("is-tick");
+      void els.countdown.offsetWidth;
+      els.countdown.classList.add("is-tick");
+      try { audio.countTick(go); } catch (_) {}
+      if (navigator.vibrate) { try { navigator.vibrate(go ? 18 : 6); } catch (_) {} }
+    }, i * stepMs));
+  });
+  countdownTimers.push(window.setTimeout(() => {
+    countingDown = false;
+    done();
+    /* "VAI!" some logo depois da peça começar a cair */
+    els.countdown.classList.add("is-out");
+    window.setTimeout(() => {
+      if (!countingDown) hideCountdown();
+    }, 260);
+  }, steps.length * stepMs - (short ? 0 : Math.round(stepMs * 0.45))));
+}
+
+function cancelCountdown() {
+  if (!countingDown) return;
+  clearCountdownTimers();
+  countingDown = false;
+  hideCountdown();
+}
+
+function requestStart() {
+  if (countingDown || tutorialOpen) return;
+  if (game.state !== STATE.READY && game.state !== STATE.OVER) return;
+  audio.unlock();
+  /* tabuleiro limpo atrás da contagem */
+  if (game.state === STATE.OVER) { try { game.reset(); } catch (_) {} }
+  hudScoreShown = game.score;
+  syncHud();
+  hideOverlay();
+  runCountdown(() => {
+    if (game.state !== STATE.READY) return;
+    game.start();
+    audio.start();
+  });
+}
+
+function requestResume() {
+  if (countingDown || tutorialOpen) return;
+  if (game.state !== STATE.PAUSED) return;
+  audio.unlock();
+  hideOverlay();
+  runCountdown(() => {
+    if (game.state === STATE.PAUSED) game.start();
+  }, { short: true });
+}
+
+/* ---------- Wave 3: toque responde (onda no dedo + vibração curta) ---------- */
+function touchFx(kind, x, y) {
+  if (kind === "tap" && navigator.vibrate) { try { navigator.vibrate(7); } catch (_) {} }
+  if (kind === "swipe-up" && navigator.vibrate) { try { navigator.vibrate(14); } catch (_) {} }
+  const host = els.touchFx;
+  if (!host || prefersReducedMotion()) return;
+  const r = host.getBoundingClientRect();
+  const dot = document.createElement("i");
+  dot.className = `touch-ring is-${kind}`;
+  dot.style.left = `${Math.round(x - r.left)}px`;
+  dot.style.top = `${Math.round(y - r.top)}px`;
+  host.appendChild(dot);
+  window.setTimeout(() => dot.remove(), 520);
+  while (host.childElementCount > 6) host.firstElementChild.remove();
+}
+
+/* ---------- Wave 3: passou o recorde no meio da partida ---------- */
+function celebrateRecord() {
+  recordCelebrated = true;
+  window.setTimeout(() => {
+    if (game.state !== STATE.PLAYING && game.state !== STATE.CLEARING) return;
+    try { renderer.showToast("NOVO RECORDE!"); } catch (_) {}
+  }, 650);
+  try { audio.record(); } catch (_) {}
+  if (navigator.vibrate) { try { navigator.vibrate([30, 40, 30, 40, 70]); } catch (_) {} }
+  const wrap = els.wrap;
+  if (wrap) {
+    wrap.classList.remove("is-record-hit");
+    void wrap.offsetWidth;
+    wrap.classList.add("is-record-hit");
+    window.setTimeout(() => wrap.classList.remove("is-record-hit"), 1400);
+  }
+  if (!prefersReducedMotion() && els.touchFx) {
+    const colors = ["#fde047", "#67e8f9", "#f472b6", "#a78bfa", "#4ade80"];
+    for (let i = 0; i < 26; i++) {
+      const c = document.createElement("i");
+      c.className = "confetti";
+      c.style.left = `${8 + Math.random() * 84}%`;
+      c.style.background = colors[i % colors.length];
+      c.style.animationDelay = `${Math.round(Math.random() * 260)}ms`;
+      c.style.setProperty("--dx", `${Math.round((Math.random() - 0.5) * 80)}px`);
+      c.style.setProperty("--rot", `${Math.round(Math.random() * 720 - 360)}deg`);
+      els.touchFx.appendChild(c);
+      window.setTimeout(() => c.remove(), 1700);
+    }
+  }
+}
 
 els.btnPause.addEventListener("click", () => {
   audio.unlock();
@@ -470,6 +614,7 @@ els.btnPause.addEventListener("click", () => {
 function goHome() {
   audio.unlock();
   if (tutorialOpen) return;
+  cancelCountdown();
   try { game.reset(); } catch (_) {}
   try { audio.pause(); } catch (_) {}
   hudScoreShown = game.score;
@@ -528,6 +673,12 @@ document.addEventListener("visibilitychange", () => {
   }
   try { audio.suspend(); } catch (_) { /* ok */ }
   if (tutorialOpen) return;
+  if (countingDown) {
+    cancelCountdown();
+    if (game.state === STATE.READY) showStart();
+    else if (game.state === STATE.PAUSED) syncPauseOverlay();
+    return;
+  }
   if (game.state !== STATE.PLAYING) return;
   try {
     game.togglePause();
@@ -678,9 +829,10 @@ function loop(now) {
 }
 
 function handlePauseButton() {
-  if (tutorialOpen) return;
+  if (tutorialOpen || countingDown) return;
   // Pausa só pausa/continua — não inicia partida (use Jogar / Espaço / Enter)
   if (game.state === STATE.READY || game.state === STATE.OVER) return;
+  if (game.state === STATE.PAUSED) { requestResume(); return; }
   game.togglePause();
   // garante UI mesmo se o hook falhar
   syncPauseOverlay();
@@ -688,7 +840,7 @@ function handlePauseButton() {
 
 /** Se o estado é pausa, o overlay TEM que estar visível */
 function syncPauseOverlay() {
-  if (game.state !== STATE.PAUSED) return;
+  if (game.state !== STATE.PAUSED || countingDown) return;
   if (!els.overlay || !els.overlay.hidden) {
     // ainda assim reforça display
     if (els.overlay) {
@@ -727,6 +879,26 @@ function syncHud() {
     if (els.comboWrap) els.comboWrap.hidden = c <= 1;
   }
   if (els.bestFloat) els.bestFloat.textContent = String(best || 0);
+  // Wave 3: barra de nível (linhas que faltam pro próximo NV)
+  {
+    const into = (game.lines || 0) % LINES_PER_LEVEL;
+    const left = LINES_PER_LEVEL - into;
+    if (els.lvlFill) els.lvlFill.style.width = `${Math.round((into / LINES_PER_LEVEL) * 100)}%`;
+    set(els.lvlLeftN, String(left));
+    set(els.lvlNext, String((game.level || 1) + 1));
+  }
+  // Wave 3: perseguição de recorde ao vivo
+  if (els.chase) {
+    const live = game.state === STATE.PLAYING || game.state === STATE.CLEARING;
+    const target = bestAtStart || best || 0;
+    const gap = target - game.score;
+    const showChase = live && target > 0 && gap > 0;
+    els.chase.hidden = !showChase;
+    if (showChase && els.chaseN) els.chaseN.textContent = String(gap);
+    if (live && !recordCelebrated && bestAtStart >= 100 && game.score > bestAtStart) {
+      celebrateRecord();
+    }
+  }
   if (els.dailyScore) els.dailyScore.textContent = String(daily.score || 0);
   if (els.dailyLines) els.dailyLines.textContent = String(daily.lines || 0);
   // destaque se bateu recorde na partida
