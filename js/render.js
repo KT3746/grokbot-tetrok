@@ -1,6 +1,6 @@
-import { COLS, ROWS, HIDDEN, PIECES, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202610052030";
-import { ghostY } from "./engine.js?v=202610052030";
-import { skinColors, skinStyle } from "./skins.js?v=202610052030";
+import { COLS, ROWS, HIDDEN, PIECES, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202610060450";
+import { ghostY } from "./engine.js?v=202610060450";
+import { skinColors, skinStyle } from "./skins.js?v=202610060450";
 const MAX_DPR = 2.75;
 
 /** Canvas 2D — visual clássico e fallback se WebGL/Three.js falhar. */
@@ -602,8 +602,30 @@ export class Renderer {
     if (game.active && game.state !== "over" && game.state !== "clearing") {
       const style = skinStyle(this.theme);
       const pal = skinColors(this.theme, game.active.id);
-      // Sombra de queda (ghost)
+      // Wave 4: guia de colunas de pouso (visível no celular)
       const gy = ghostY(game.board, game.active);
+      {
+        const cols = new Set();
+        const ghostCells = cellsOf({ ...game.active, y: gy });
+        for (const c of ghostCells) cols.add(c.x);
+        const pulse = 0.1 + 0.06 * Math.sin(performance.now() / 220);
+        for (const cx of cols) {
+          const topVis = Math.max(0, Math.min(ROWS - 1, game.active.y - HIDDEN));
+          const botVis = Math.max(0, Math.min(ROWS - 1, gy - HIDDEN + 1));
+          const y0 = Math.min(topVis, botVis) * ch;
+          const y1 = Math.max(topVis + 1, botVis + 1) * ch;
+          const g = ctx.createLinearGradient(0, y0, 0, y1);
+          g.addColorStop(0, "rgba(255,255,255,0)");
+          g.addColorStop(0.35, pal.color);
+          g.addColorStop(1, pal.color);
+          ctx.save();
+          ctx.globalAlpha = pulse * (style === "pixel" ? 0.55 : 0.42);
+          ctx.fillStyle = g;
+          ctx.fillRect(cx * cw + cw * 0.18, y0, cw * 0.64, Math.max(1, y1 - y0));
+          ctx.restore();
+        }
+      }
+      // Sombra de queda (ghost)
       if (gy !== game.active.y) {
         const ghost = { ...game.active, y: gy };
         for (const { x, y } of cellsOf(ghost)) {

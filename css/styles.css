@@ -1454,3 +1454,140 @@ body.theme-pixel .touch-ring { border-radius: 0; border-width: 3px; box-shadow: 
   .countdown.is-tick span, .touch-ring, .confetti, #board-wrap.is-record-hit #board { animation: none !important; }
   .lvl-track i { transition: none; }
 }
+
+/* === Wave 4 (2026-10-06): guia de colunas, NEXT×2, banner limpeza, PERIGO! === */
+
+/* NEXT ×2 no float (celular) */
+.next-stack .next-stack-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+#next-float-1 {
+  width: 40px;
+  height: 40px;
+  max-width: 100%;
+  display: block;
+  margin: 0 auto;
+  opacity: 0.78;
+  filter: saturate(0.92);
+}
+@media (min-width: 900px) {
+  /* desktop: fila lateral já mostra várias; float some no layout full wide */
+  #next-float-1 { width: 36px; height: 36px; }
+}
+
+/* Banner de limpeza (TETROK / Dupla / Tripla / B2B) */
+.clear-banner {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 42%, rgba(8, 18, 36, 0.55), transparent 62%);
+}
+.clear-banner[hidden] { display: none !important; }
+.clear-banner span {
+  font-family: var(--display, Sora, Manrope, sans-serif);
+  font-weight: 900;
+  font-size: clamp(1.55rem, 9vw, 2.6rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff7d6;
+  text-shadow:
+    0 0 18px rgba(103, 232, 249, 0.95),
+    0 0 36px rgba(34, 211, 238, 0.55),
+    0 2px 0 rgba(0, 0, 0, 0.45);
+  animation: tetrok-clear-pop 0.85s cubic-bezier(.2, .9, .3, 1) both;
+  text-align: center;
+  padding: 0 12px;
+  line-height: 1.05;
+}
+.clear-banner.is-tetrok span {
+  color: #ffe08a;
+  text-shadow:
+    0 0 22px rgba(250, 204, 21, 0.95),
+    0 0 40px rgba(249, 115, 22, 0.55),
+    0 2px 0 rgba(0, 0, 0, 0.5);
+  font-size: clamp(1.85rem, 11vw, 3rem);
+}
+.clear-banner.is-b2b span {
+  color: #e9d5ff;
+  text-shadow: 0 0 20px rgba(167, 139, 250, 0.95), 0 0 32px rgba(99, 102, 241, 0.5);
+}
+.clear-banner.is-out span { animation: tetrok-clear-out 0.28s ease-in forwards; }
+@keyframes tetrok-clear-pop {
+  0% { transform: scale(0.55); opacity: 0; filter: blur(4px); }
+  35% { transform: scale(1.08); opacity: 1; filter: none; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes tetrok-clear-out {
+  to { transform: scale(1.12); opacity: 0; }
+}
+body.theme-magma .clear-banner span {
+  color: #ffedd5;
+  text-shadow: 0 0 20px rgba(249, 115, 22, 0.95), 0 0 36px rgba(239, 68, 68, 0.55);
+}
+body.theme-crt .clear-banner span {
+  color: #ffb000;
+  text-shadow: 0 0 16px rgba(255, 176, 0, 0.95);
+  font-family: VT323, monospace;
+  letter-spacing: 0.08em;
+}
+body.theme-pixel .clear-banner span {
+  font-family: "Press Start 2P", monospace;
+  font-size: clamp(0.72rem, 4.2vw, 1.05rem);
+  text-shadow: 3px 3px 0 #000;
+}
+
+/* Chip PERIGO! + borda do poço */
+.danger-chip {
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 7;
+  pointer-events: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-family: var(--display, Sora, Manrope, sans-serif);
+  font-weight: 900;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  color: #fff1f2;
+  background: linear-gradient(160deg, rgba(239, 68, 68, 0.95), rgba(127, 29, 29, 0.92));
+  border: 1px solid rgba(254, 202, 202, 0.55);
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.65), 0 6px 18px rgba(0, 0, 0, 0.35);
+  animation: tetrok-danger-pulse 1.1s ease-in-out infinite alternate;
+}
+.danger-chip[hidden] { display: none !important; }
+@keyframes tetrok-danger-pulse {
+  from { filter: brightness(1); box-shadow: 0 0 12px rgba(239, 68, 68, 0.45); }
+  to { filter: brightness(1.18); box-shadow: 0 0 26px rgba(239, 68, 68, 0.85); }
+}
+body.is-danger #board-wrap {
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.55), 0 0 28px rgba(239, 68, 68, 0.35);
+}
+body.is-danger #board {
+  box-shadow: 0 0 32px rgba(239, 68, 68, 0.55), inset 0 0 24px rgba(239, 68, 68, 0.12);
+}
+body.theme-pixel .danger-chip {
+  border-radius: 0;
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.48rem;
+  letter-spacing: 0.08em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clear-banner span,
+  .clear-banner.is-out span,
+  .danger-chip {
+    animation: none !important;
+  }
+  body.is-danger #board-wrap,
+  body.is-danger #board {
+    transition: none;
+  }
+}

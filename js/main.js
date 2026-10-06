@@ -1,8 +1,8 @@
-import { Game, STATE } from "./engine.js?v=202610052030";
-import { AudioEngine } from "./audio.js?v=202610052030";
-import { createRenderer } from "./renderer.js?v=202610052030";
-import { Input } from "./input.js?v=202610052030";
-import { LINES_PER_LEVEL } from "./pieces.js?v=202610052030";
+import { Game, STATE } from "./engine.js?v=202610060450";
+import { AudioEngine } from "./audio.js?v=202610060450";
+import { createRenderer } from "./renderer.js?v=202610060450";
+import { Input } from "./input.js?v=202610060450";
+import { LINES_PER_LEVEL } from "./pieces.js?v=202610060450";
 
 
 // iOS Safari: trava pinch / double-tap / scale (não dá pra "deszoomar" por JS)
@@ -151,6 +151,9 @@ const els = {
   chaseN: document.getElementById("stat-chase"),
   countdown: document.getElementById("countdown"),
   countdownNum: document.getElementById("countdown-num"),
+  clearBanner: document.getElementById("clear-banner"),
+  clearBannerText: document.getElementById("clear-banner-text"),
+  dangerChip: document.getElementById("danger-chip"),
   touchFx: document.getElementById("touch-fx"),
 };
 
@@ -164,6 +167,7 @@ const nextCanvases = [
   document.getElementById("next-3"),
   document.getElementById("next-m"),
   document.getElementById("next-float"),
+  document.getElementById("next-float-1"),
   document.getElementById("next-strip"),
 ].filter(Boolean);
 
@@ -183,7 +187,7 @@ els.board = created.canvas;
 renderer.minis.forEach((mini) => {
   if (mini.kind !== "next") return;
   const id = mini.canvas.id;
-  if (id === "next-1") mini.index = 1;
+  if (id === "next-1" || id === "next-float-1") mini.index = 1;
   else if (id === "next-2") mini.index = 2;
   else if (id === "next-3") mini.index = 3;
   else if (id === "next") mini.index = 1;
@@ -394,6 +398,7 @@ const game = new Game({
     if (combo > 1) tip = `${label}  ·  Combo x${combo}`;
     if (b2b) tip = tip.includes("B2B") ? tip : `B2B · ${tip}`;
     renderer.showToast(tip);
+    showClearBanner(tip, { tetrok: count >= 4, b2b: !!b2b });
     renderer.spawnScorePop(gained || 0, perfect ? "Limpeza" : b2b ? "Back-to-back" : combo > 1 ? `Combo x${combo}` : "");
     if (navigator.vibrate) {
       try {
@@ -747,6 +752,64 @@ function prefersReducedMotion() {
     return false;
   }
 }
+/* ---------- Wave 4: banner de limpeza + alerta PERIGO! ---------- */
+let clearBannerTimer = 0;
+let dangerBuzzAcc = 0;
+let wasDanger = false;
+
+function showClearBanner(text, { tetrok = false, b2b = false } = {}) {
+  if (!els.clearBanner || !els.clearBannerText) return;
+  window.clearTimeout(clearBannerTimer);
+  els.clearBannerText.textContent = text || "LIMPO!";
+  els.clearBanner.classList.toggle("is-tetrok", !!tetrok);
+  els.clearBanner.classList.toggle("is-b2b", !!b2b && !tetrok);
+  els.clearBanner.classList.remove("is-out");
+  els.clearBanner.hidden = false;
+  els.clearBanner.removeAttribute("hidden");
+  const hold = prefersReducedMotion() ? 520 : (tetrok ? 980 : 780);
+  clearBannerTimer = window.setTimeout(() => {
+    els.clearBanner.classList.add("is-out");
+    clearBannerTimer = window.setTimeout(() => {
+      els.clearBanner.hidden = true;
+      els.clearBanner.setAttribute("hidden", "");
+      els.clearBanner.classList.remove("is-out", "is-tetrok", "is-b2b");
+    }, prefersReducedMotion() ? 40 : 280);
+  }, hold);
+}
+
+function syncDanger(dt) {
+  let danger = false;
+  if (game.state === STATE.PLAYING && game.board) {
+    for (let y = 2; y < 8 && !danger; y++) {
+      for (let x = 0; x < 10; x++) {
+        if (game.board[y][x]) { danger = true; break; }
+      }
+    }
+  }
+  els.app.classList.toggle("is-danger", danger);
+  if (els.dangerChip) {
+    els.dangerChip.hidden = !danger;
+    if (danger) els.dangerChip.removeAttribute("hidden");
+    else els.dangerChip.setAttribute("hidden", "");
+  }
+  if (danger) {
+    if (!wasDanger) {
+      wasDanger = true;
+      dangerBuzzAcc = 0;
+      if (navigator.vibrate) { try { navigator.vibrate([18, 40, 18]); } catch (_) {} }
+    } else {
+      dangerBuzzAcc += dt;
+      if (dangerBuzzAcc >= 2400) {
+        dangerBuzzAcc = 0;
+        if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) {} }
+      }
+    }
+  } else {
+    wasDanger = false;
+    dangerBuzzAcc = 0;
+  }
+}
+
 /** Flash/pop no poço ao limpar linha — sem animação se prefers-reduced-motion. */
 function flashBoardClear(count) {
   const el = els.wrap;
@@ -808,18 +871,8 @@ function loop(now) {
     } else if (hudScoreShown > game.score) {
       hudScoreShown = game.score;
     }
-    // classe de perigo no chrome quando a pilha sobe
-    try {
-      let danger = false;
-      if (game.state === STATE.PLAYING && game.board) {
-        for (let y = 2; y < 8 && !danger; y++) {
-          for (let x = 0; x < 10; x++) {
-            if (game.board[y][x]) { danger = true; break; }
-          }
-        }
-      }
-      els.app.classList.toggle("is-danger", danger);
-    } catch (_) {}
+    // Wave 4: PERIGO! chip + vibração quando a pilha sobe
+    try { syncDanger(dt); } catch (_) {}
     try { syncPauseOverlay(); } catch (_) {}
     renderer.draw(game);
   } catch (err) {
