@@ -17,7 +17,7 @@ import {
   shuffle,
   emptyBoard,
   gravityMs,
-} from "./pieces.js?v=202610052030";
+} from "./pieces.js?v=202610060450";
 
 export const STATE = {
   READY: "ready",

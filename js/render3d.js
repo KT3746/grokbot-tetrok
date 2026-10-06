@@ -4,10 +4,10 @@
  * Preview NEXT/HOLD continua no Canvas 2D (legível em miniatura).
  */
 import * as THREE from "three";
-import { COLS, ROWS, HIDDEN, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202610052030";
-import { ghostY } from "./engine.js?v=202610052030";
-import { skinColors } from "./skins.js?v=202610052030";
-import { CanvasRenderer } from "./render.js?v=202610052030";
+import { COLS, ROWS, HIDDEN, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202610060450";
+import { ghostY } from "./engine.js?v=202610060450";
+import { skinColors } from "./skins.js?v=202610060450";
+import { CanvasRenderer } from "./render.js?v=202610060450";
 
 const CELL = 1;
 const BOX = 0.86;
@@ -191,6 +191,21 @@ export class ThreeRenderer {
     this.barMesh.frustumCulled = false;
     this.barMesh.count = 0;
     this.scene.add(this.barMesh);
+
+    /* Wave 4: pilares de coluna de pouso */
+    const guideGeo = new THREE.BoxGeometry(BOX * 0.28, 1, BOX_Z * 0.22);
+    this.guideMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.22,
+      depthWrite: false,
+    });
+    this.guideMesh = new THREE.InstancedMesh(guideGeo, this.guideMat, 4);
+    this.guideMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.guideMesh.frustumCulled = false;
+    this.guideMesh.count = 0;
+    this.guideMesh.setColorAt(0, new THREE.Color(0xffffff));
+    this.scene.add(this.guideMesh);
 
     this.flashPlane = new THREE.Mesh(
       new THREE.PlaneGeometry(COLS + 0.4, ROWS + 0.4),
@@ -777,6 +792,7 @@ export class ThreeRenderer {
     let an = 0;
     let gn = 0;
     let bn = 0;
+    let gdn = 0;
     if (game.active && game.state !== "over" && game.state !== "clearing") {
       const pal = skinColors(this.theme, game.active.id);
       const gy = ghostY(game.board, game.active);
@@ -798,6 +814,25 @@ export class ThreeRenderer {
           if (visY < 0 || visY >= ROWS) continue;
           this.setInstance(this.ghostMesh, gn, colX(x), visYToWorld(visY), -0.12, 1, 1, 1, pal.color);
           gn += 1;
+        }
+        /* Wave 4: pilares nas colunas de pouso */
+        if (this.guideMesh) {
+          const cols = new Set(cellsOf(ghost).map((c) => c.x));
+          const topVis = Math.max(0, Math.min(ROWS - 1, game.active.y - HIDDEN));
+          const botVis = Math.max(0, Math.min(ROWS - 1, gy - HIDDEN));
+          const mid = (topVis + botVis) / 2;
+          const hCells = Math.max(0.6, Math.abs(botVis - topVis) + 0.8);
+          const pulse = 0.16 + 0.08 * Math.sin(performance.now() / 220);
+          this.guideMat.opacity = pulse;
+          for (const cx of cols) {
+            if (gdn >= 4) break;
+            this.setInstance(
+              this.guideMesh, gdn,
+              colX(cx), visYToWorld(mid), -0.35,
+              1, hCells, 1, pal.color,
+            );
+            gdn += 1;
+          }
         }
       }
       const lockPulse = game.grounded
@@ -835,6 +870,11 @@ export class ThreeRenderer {
     this.ghostMesh.instanceMatrix.needsUpdate = true;
     this.barMesh.count = bn;
     this.barMesh.instanceMatrix.needsUpdate = true;
+    if (this.guideMesh) {
+      this.guideMesh.count = gdn;
+      this.guideMesh.instanceMatrix.needsUpdate = true;
+      if (this.guideMesh.instanceColor) this.guideMesh.instanceColor.needsUpdate = true;
+    }
 
     let danger = 0;
     for (let y = HIDDEN; y < HIDDEN + 6; y++) {
