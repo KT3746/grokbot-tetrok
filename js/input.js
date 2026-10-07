@@ -1,4 +1,4 @@
-import { DAS_MS, ARR_MS, SOFT_DROP_MS } from "./pieces.js?v=202610060450";
+import { DAS_MS, ARR_MS, SOFT_DROP_MS } from "./pieces.js?v=202610070415";
 
 /**
  * Teclado + toque sem disparo duplo.
@@ -224,13 +224,18 @@ export class Input {
       for (let i = 0; i < steps; i++) {
         if (this.game.move(dir)) { this.audio.move(); moved = true; }
       }
-      if (moved) { try { this.onAction(dir > 0 ? "right" : "left"); } catch (_) {} }
+      if (moved) {
+        const side = dir > 0 ? "right" : "left";
+        try { this.onAction(side); } catch (_) {}
+        try { this.onGestureFx(side, ev.clientX, ev.clientY); } catch (_) {}
+      }
       this.swipe.accX = 0;
       this.swipe.accY *= 0.25;
     } else if (this.swipe.accY >= cellPx * 0.3 && absY > absX * 0.8) {
       const steps = Math.max(1, Math.round(this.swipe.accY / (cellPx * 0.48)));
       for (let i = 0; i < steps; i++) this.game.softDrop();
       try { this.onAction("soft"); } catch (_) {}
+      try { this.onGestureFx("soft", ev.clientX, ev.clientY); } catch (_) {}
       this.swipe.accY = 0;
       this.swipe.accX *= 0.25;
     }

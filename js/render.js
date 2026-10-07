@@ -1,9 +1,9 @@
-import { COLS, ROWS, HIDDEN, PIECES, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202610060450";
-import { ghostY } from "./engine.js?v=202610060450";
-import { skinColors, skinStyle } from "./skins.js?v=202610060450";
+import { COLS, ROWS, HIDDEN, PIECES, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202610070415";
+import { ghostY } from "./engine.js?v=202610070415";
+import { skinColors, skinStyle } from "./skins.js?v=202610070415";
 const MAX_DPR = 2.75;
 
-/** Canvas 2D — visual clássico e fallback se WebGL/Three.js falhar. */
+/** Canvas 2D  -  visual clássico e fallback se WebGL/Three.js falhar. */
 export class Renderer {
   constructor(boardCanvas, minis) {
     this.board = boardCanvas || null;
@@ -634,7 +634,7 @@ export class Renderer {
           drawGhostCell(ctx, x, visY, cw, ch, pal.color, style);
         }
       }
-      // Peça ativa — pulsa leve quando está travando no chão
+      // Peça ativa  -  pulsa leve quando está travando no chão
       const lockPulse = game.grounded
         ? 0.88 + 0.12 * Math.sin((performance.now() / 120) * Math.PI)
         : 1;
@@ -1097,7 +1097,7 @@ function drawCell(ctx, x, y, cw, ch, color, deep, alpha = 1, pulse = 1, glow = f
     ctx.lineWidth = Math.max(1, cw * 0.06);
     ctx.strokeRect(px + inset * 0.5, py + inset * 0.5, cw - inset, ch - inset);
   } else {
-    // neon — contorno brilhante + miolo translúcido (igual ao print)
+    // neon  -  contorno brilhante + miolo translúcido (igual ao print)
     const inset = Math.max(1.0, cw * 0.08);
     const r = Math.max(3, cw * 0.22);
     // bloom externo (todas as peças, não só a ativa)

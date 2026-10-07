@@ -1,4 +1,4 @@
-/* TETROK — Neon/Magma/CRT/Pixel + layouts */
+/* TETROK  -  Neon/Magma/CRT/Pixel + layouts */
 :root {
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
@@ -124,7 +124,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #board {
   display: block; max-width: 100%; max-height: 100%;
   border-radius: 12px; touch-action: none;
-  /* Toque cai no #board-wrap — canvas não rouba o gesto do HUD. */
+  /* Toque cai no #board-wrap  -  canvas não rouba o gesto do HUD. */
   pointer-events: none;
   box-shadow: 0 0 18px rgba(34, 211, 238, 0.3);
 }
@@ -475,7 +475,7 @@ body.theme-magma .linkish { color: #fdba74; }
 /* esconde fila HOLD na lateral direita: só NEXT */
 body.layout-micro .rail-right .hold-slot { display: none !important; }
 
-/* controles de toque somem — gestos no tabuleiro */
+/* controles de toque somem  -  gestos no tabuleiro */
 .cyber-pad,
 .gesture-hint {
   display: none !important;
@@ -490,7 +490,7 @@ body.layout-micro .rail-right .hold-slot { display: none !important; }
 /* esconde fila HOLD na lateral direita: só NEXT */
 body.layout-micro .rail-right .hold-slot { display: none !important; }
 
-/* controles de toque somem — gestos no tabuleiro */
+/* controles de toque somem  -  gestos no tabuleiro */
 .cyber-pad,
 .gesture-hint {
   display: none !important;
@@ -1590,4 +1590,229 @@ body.theme-pixel .danger-chip {
   body.is-danger #board {
     transition: none;
   }
+}
+
+
+/* === Wave 5 (2026-10-07): setas de gesto, medidor de combo, NÍVEL!, pop de placar === */
+
+/* Setas de gesto nas bordas do poço (Galaxy / toque) */
+.gesture-arrows {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.gesture-arrows.is-on { opacity: 1; }
+.gesture-arrows .ga {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  font-family: var(--display, Sora, Manrope, sans-serif);
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 0 12px rgba(103, 232, 249, 0.9), 0 2px 0 rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transform: scale(0.75);
+  transition: opacity 0.15s ease, transform 0.18s cubic-bezier(.2,.9,.3,1);
+}
+.gesture-arrows .ga.is-flash {
+  opacity: 1;
+  transform: scale(1);
+  animation: tetrok-ga-pop 0.34s ease-out;
+}
+.ga-left {
+  left: 6px; top: 50%;
+  transform: translateY(-50%) scale(0.75);
+  font-size: clamp(1.4rem, 8vw, 2.2rem);
+  padding: 10px 8px;
+  background: linear-gradient(90deg, rgba(34, 211, 238, 0.35), transparent);
+  border-radius: 12px;
+}
+.ga-left.is-flash { transform: translateY(-50%) scale(1); }
+.ga-right {
+  right: 6px; top: 50%;
+  transform: translateY(-50%) scale(0.75);
+  font-size: clamp(1.4rem, 8vw, 2.2rem);
+  padding: 10px 8px;
+  background: linear-gradient(270deg, rgba(34, 211, 238, 0.35), transparent);
+  border-radius: 12px;
+}
+.ga-right.is-flash { transform: translateY(-50%) scale(1); }
+.ga-down {
+  left: 50%; bottom: 10%;
+  transform: translateX(-50%) scale(0.75);
+  font-size: clamp(1.2rem, 7vw, 1.8rem);
+  padding: 6px 14px;
+  background: rgba(8, 18, 36, 0.45);
+  border-radius: 999px;
+  border: 1px solid rgba(125, 211, 252, 0.35);
+}
+.ga-down.is-flash { transform: translateX(-50%) scale(1); }
+.ga-up {
+  left: 50%; top: 12%;
+  transform: translateX(-50%) scale(0.75);
+  font-size: clamp(0.72rem, 3.8vw, 1rem);
+  letter-spacing: 0.12em;
+  padding: 8px 14px;
+  background: linear-gradient(180deg, rgba(250, 204, 21, 0.55), rgba(249, 115, 22, 0.35));
+  border-radius: 999px;
+  border: 1px solid rgba(253, 224, 71, 0.55);
+  box-shadow: 0 0 18px rgba(250, 204, 21, 0.45);
+}
+.ga-up.is-flash { transform: translateX(-50%) scale(1); }
+@keyframes tetrok-ga-pop {
+  0% { filter: brightness(1.4); }
+  100% { filter: brightness(1); }
+}
+
+/* Trilha visual de soft-drop (borda inferior brilha) */
+#board-wrap.is-soft-trail #board {
+  box-shadow: 0 10px 28px rgba(34, 211, 238, 0.35), inset 0 -18px 28px rgba(34, 211, 238, 0.12);
+}
+#board-wrap.is-soft-trail::after {
+  content: "";
+  position: absolute;
+  left: 12%; right: 12%; bottom: 4%;
+  height: 28%;
+  pointer-events: none;
+  z-index: 5;
+  background: linear-gradient(180deg, transparent, rgba(103, 232, 249, 0.18));
+  animation: tetrok-soft-streak 0.22s ease-out;
+}
+@keyframes tetrok-soft-streak {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Medidor de combo (barra de streak) */
+.combo-meter {
+  display: block;
+  position: relative;
+  margin-top: 6px;
+  width: 100%;
+  min-width: 72px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(2, 8, 20, 0.75);
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(167, 139, 250, 0.25);
+}
+.combo-meter[hidden] { display: none !important; }
+.combo-meter i {
+  display: block;
+  height: 100%;
+  width: 20%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #67e8f9, #a78bfa 55%, #f472b6);
+  box-shadow: 0 0 12px rgba(167, 139, 250, 0.65);
+  transition: width 0.22s ease;
+}
+.combo-meter b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+}
+.combo-meter.is-hot {
+  border-color: rgba(251, 191, 36, 0.65);
+  box-shadow: 0 0 14px rgba(251, 191, 36, 0.45);
+}
+.combo-meter.is-hot i {
+  background: linear-gradient(90deg, #fbbf24, #f97316 60%, #ef4444);
+}
+.combo-meter.is-blaze {
+  animation: tetrok-combo-blaze 0.7s ease-in-out infinite alternate;
+}
+@keyframes tetrok-combo-blaze {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.2); }
+}
+body.theme-magma .combo-meter i {
+  background: linear-gradient(90deg, #fb923c, #ef4444);
+}
+body.theme-crt .combo-meter i {
+  background: linear-gradient(90deg, #ffb000, #ffc933);
+}
+body.theme-pixel .combo-meter {
+  border-radius: 0;
+  border-width: 2px;
+  border-color: #000;
+}
+body.theme-pixel .combo-meter i { border-radius: 0; }
+
+/* Banner NÍVEL! (reusa clear-banner) */
+.clear-banner.is-level span {
+  color: #a5f3fc;
+  text-shadow:
+    0 0 22px rgba(34, 211, 238, 0.95),
+    0 0 40px rgba(59, 130, 246, 0.55),
+    0 2px 0 rgba(0, 0, 0, 0.5);
+  font-size: clamp(1.7rem, 10vw, 2.8rem);
+}
+body.theme-magma .clear-banner.is-level span {
+  color: #fed7aa;
+  text-shadow: 0 0 22px rgba(249, 115, 22, 0.95), 0 0 36px rgba(234, 88, 12, 0.55);
+}
+body.theme-crt .clear-banner.is-level span {
+  color: #ffe08a;
+  text-shadow: 0 0 16px rgba(255, 176, 0, 0.95);
+}
+body.theme-pixel .clear-banner.is-level span {
+  color: #67e8f9;
+}
+
+/* Pop dourado no placar ao limpar linhas */
+#stat-score-float.is-score-pop,
+#stat-score.is-score-pop,
+#stat-score-rail.is-score-pop {
+  animation: tetrok-score-pop 0.5s cubic-bezier(.2,.9,.3,1);
+  color: #fde68a !important;
+  text-shadow: 0 0 14px rgba(250, 204, 21, 0.85);
+}
+@keyframes tetrok-score-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+#board-wrap.is-score-juice {
+  animation: tetrok-score-glow 0.5s ease-out;
+}
+@keyframes tetrok-score-glow {
+  0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
+  40% { box-shadow: 0 0 24px rgba(250, 204, 21, 0.45); }
+  100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
+}
+
+/* Galaxy: HUD flutuante um pouco mais afastado da barra de gestos */
+@media (max-width: 480px) and (orientation: portrait) {
+  .float-hud {
+    padding-bottom: max(2px, env(safe-area-inset-bottom, 0px));
+  }
+  .gesture-hint {
+    bottom: max(10px, calc(env(safe-area-inset-bottom, 0px) + 4px));
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gesture-arrows .ga.is-flash,
+  .combo-meter.is-blaze,
+  #stat-score-float.is-score-pop,
+  #stat-score.is-score-pop,
+  #stat-score-rail.is-score-pop,
+  #board-wrap.is-score-juice,
+  #board-wrap.is-soft-trail::after {
+    animation: none !important;
+  }
+  .combo-meter i { transition: none; }
 }
