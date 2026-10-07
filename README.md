@@ -4,7 +4,7 @@ Jogo de puzzle com peças que caem. É **original**: nomes, cores, textos e sons
 
 **Jogar online:** [https://kt3746.github.io/grokbot-tetrok/](https://kt3746.github.io/grokbot-tetrok/)
 
-Versão **wave 4**: guia de colunas de pouso, NEXT ×2 no celular, banner grande de limpeza (TETROK/B2B) e alerta PERIGO! com vibração. Cache-bust `?v=202610060450`.
+Versão **wave 5**: setas de gesto nas bordas, medidor de combo, banner NÍVEL! e pop dourado no placar. Cache-bust `?v=202610070415`.
 
 > Se o link ainda não abrir, veja [Publicar no GitHub Pages](#publicar-no-github-pages) no final deste arquivo.
 
@@ -12,7 +12,7 @@ Versão **wave 4**: guia de colunas de pouso, NEXT ×2 no celular, banner grande
 
 1. Peças de quatro blocos caem no poço.
 2. Mova, gire e encaixe para **completar linhas horizontais**.
-3. Linha cheia some e você ganha pontos. Quatro de uma vez é **TETROK** — vale mais.
+3. Linha cheia some e você ganha pontos. Quatro de uma vez é **TETROK**  -  vale mais.
 4. A cada 10 linhas o **nível** sobe e as peças caem mais rápido.
 5. Se a pilha chega no topo e a próxima peça não cabe, a partida acaba.
 6. A sombra clara mostra onde a peça vai pousar.
@@ -55,7 +55,7 @@ Na primeira visita aparece **Como jogar** (passos curtos, dá para pular). O jei
 | **▼ suave** | Desce um pouco |
 | **Queda!** | Queda rápida (ação principal) |
 
-**Reserva** (o ＋ no canto) guarda a peça para usar depois — o tutorial explica isso. **Próxima** fica na mesma faixa estreita, para o poço ficar grande.
+**Reserva** (o ＋ no canto) guarda a peça para usar depois  -  o tutorial explica isso. **Próxima** fica na mesma faixa estreita, para o poço ficar grande.
 
 O primeiro toque também liga o som (o navegador exige um gesto seu).
 
@@ -96,19 +96,19 @@ Cada publicação troca o parâmetro `?v=` dos arquivos (hash do commit), para o
 
 ## Arquivos
 
-- `index.html` — tela, textos e importmap do Three.js (vendor local)
-- `css/styles.css` — visual, HUD, overlays
-- `js/engine.js` — regras (pontos, linhas, reserva, fim de jogo)
-- `js/pieces.js` — formas e cores
-- `js/render.js` — desenho Canvas 2D (também usado se WebGL falhar)
-- `js/render3d.js` — poço 3D em Three.js (baixo-poli)
-- `js/renderer.js` — escolhe 3D ou 2D automaticamente
-- `js/vendor/three.module.js` — Three.js local (sem CDN)
-- `js/input.js` — teclado e toque
-- `js/audio.js` — sons
-- `js/skins.js` — paletas Neon / Magma / CRT / Pixel
-- `js/main.js` — liga tudo
+- `index.html`  -  tela, textos e importmap do Three.js (vendor local)
+- `css/styles.css`  -  visual, HUD, overlays
+- `js/engine.js`  -  regras (pontos, linhas, reserva, fim de jogo)
+- `js/pieces.js`  -  formas e cores
+- `js/render.js`  -  desenho Canvas 2D (também usado se WebGL falhar)
+- `js/render3d.js`  -  poço 3D em Three.js (baixo-poli)
+- `js/renderer.js`  -  escolhe 3D ou 2D automaticamente
+- `js/vendor/three.module.js`  -  Three.js local (sem CDN)
+- `js/input.js`  -  teclado e toque
+- `js/audio.js`  -  sons
+- `js/skins.js`  -  paletas Neon / Magma / CRT / Pixel
+- `js/main.js`  -  liga tudo
 
 O visual 3D usa o mesmo motor de regras. Se o aparelho não tiver WebGL, aparece um aviso em português e o jogo segue no canvas clássico.
 
-Feito para ser leve, estático e rápido — sem servidor próprio.
+Feito para ser leve, estático e rápido  -  sem servidor próprio.

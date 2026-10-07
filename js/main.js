@@ -1,8 +1,8 @@
-import { Game, STATE } from "./engine.js?v=202610060450";
-import { AudioEngine } from "./audio.js?v=202610060450";
-import { createRenderer } from "./renderer.js?v=202610060450";
-import { Input } from "./input.js?v=202610060450";
-import { LINES_PER_LEVEL } from "./pieces.js?v=202610060450";
+import { Game, STATE } from "./engine.js?v=202610070415";
+import { AudioEngine } from "./audio.js?v=202610070415";
+import { createRenderer } from "./renderer.js?v=202610070415";
+import { Input } from "./input.js?v=202610070415";
+import { LINES_PER_LEVEL } from "./pieces.js?v=202610070415";
 
 
 // iOS Safari: trava pinch / double-tap / scale (não dá pra "deszoomar" por JS)
@@ -155,6 +155,10 @@ const els = {
   clearBannerText: document.getElementById("clear-banner-text"),
   dangerChip: document.getElementById("danger-chip"),
   touchFx: document.getElementById("touch-fx"),
+  gestureArrows: document.getElementById("gesture-arrows"),
+  comboMeter: document.getElementById("combo-meter"),
+  comboMeterFill: document.getElementById("combo-meter-fill"),
+  comboMeterLabel: document.getElementById("combo-meter-label"),
 };
 
 const audio = new AudioEngine();
@@ -412,16 +416,19 @@ const game = new Game({
         /* ignore */
       }
     }
+    pulseScorePop();
     syncHud();
   },
   onLevelUp: () => {
     audio.levelUp();
     renderer.pulseLevel();
     const lv = game.level;
+    showLevelBanner(`NÍVEL ${lv}!`);
     // não sobrescreve toast de linha na mesma hora
     window.setTimeout(() => {
       if (game.level === lv) renderer.showToast(`Nível ${lv}! Mais rápido`);
     }, 700);
+    if (navigator.vibrate) { try { navigator.vibrate([10, 30, 18]); } catch (_) {} }
     syncHud();
   },
   onGameOver: (snap) => {
@@ -466,7 +473,7 @@ const buttons = [
 
 const input = new Input(game, audio, {
   onPause: handlePauseButton,
-  /* Canvas usa pointer-events:none — toque cai em #board-wrap; HUD fica de fora. */
+  /* Canvas usa pointer-events:none  -  toque cai em #board-wrap; HUD fica de fora. */
   boardEl: els.wrap || els.board,
   buttons,
   isBlocked: () => tutorialOpen || countingDown || document.hidden,
@@ -564,11 +571,46 @@ function requestResume() {
 }
 
 /* ---------- Wave 3: toque responde (onda no dedo + vibração curta) ---------- */
+/* ---------- Wave 5: setas de gesto nas bordas do poço ---------- */
+let gestureArrowTimer = 0;
+function flashGestureArrow(dir) {
+  const host = els.gestureArrows;
+  if (!host) return;
+  const map = { left: "left", right: "right", soft: "soft", hard: "hard", "swipe-up": "hard" };
+  const key = map[dir];
+  if (!key) return;
+  host.classList.add("is-on");
+  for (const el of host.querySelectorAll(".ga")) {
+    el.classList.toggle("is-flash", el.getAttribute("data-dir") === key);
+  }
+  if (els.wrap) {
+    els.wrap.classList.toggle("is-soft-trail", key === "soft");
+    if (key === "soft") {
+      window.clearTimeout(flashGestureArrow._softT);
+      flashGestureArrow._softT = window.setTimeout(() => {
+        if (els.wrap) els.wrap.classList.remove("is-soft-trail");
+      }, 220);
+    }
+  }
+  window.clearTimeout(gestureArrowTimer);
+  gestureArrowTimer = window.setTimeout(() => {
+    host.classList.remove("is-on");
+    for (const el of host.querySelectorAll(".ga")) el.classList.remove("is-flash");
+  }, prefersReducedMotion() ? 120 : 340);
+}
+
 function touchFx(kind, x, y) {
   if (kind === "tap" && navigator.vibrate) { try { navigator.vibrate(7); } catch (_) {} }
   if (kind === "swipe-up" && navigator.vibrate) { try { navigator.vibrate(14); } catch (_) {} }
+  if (kind === "left" || kind === "right" || kind === "soft" || kind === "hard" || kind === "swipe-up") {
+    flashGestureArrow(kind);
+  }
   const host = els.touchFx;
   if (!host || prefersReducedMotion()) return;
+  if (kind === "left" || kind === "right" || kind === "soft") {
+    // setas bastam para swipe lateral/baixo; evita spam de anéis
+    return;
+  }
   const r = host.getBoundingClientRect();
   const dot = document.createElement("i");
   dot.className = `touch-ring is-${kind}`;
@@ -729,7 +771,7 @@ function dismissTip(persist) {
   if (persist) writeTipSeen();
 }
 function showTipIfNeeded() {
-  /* Boot: não mostra ainda — tip do 1º minuto entra ao começar a partida. */
+  /* Boot: não mostra ainda  -  tip do 1º minuto entra ao começar a partida. */
   if (!els.tipToast) return;
   if (readTipSeen()) dismissTip(false);
   else {
@@ -754,6 +796,8 @@ function prefersReducedMotion() {
 }
 /* ---------- Wave 4: banner de limpeza + alerta PERIGO! ---------- */
 let clearBannerTimer = 0;
+let levelBannerTimer = 0;
+let scorePopTimer = 0;
 let dangerBuzzAcc = 0;
 let wasDanger = false;
 
@@ -763,7 +807,8 @@ function showClearBanner(text, { tetrok = false, b2b = false } = {}) {
   els.clearBannerText.textContent = text || "LIMPO!";
   els.clearBanner.classList.toggle("is-tetrok", !!tetrok);
   els.clearBanner.classList.toggle("is-b2b", !!b2b && !tetrok);
-  els.clearBanner.classList.remove("is-out");
+  els.clearBanner.classList.remove("is-out", "is-level");
+  window.clearTimeout(levelBannerTimer);
   els.clearBanner.hidden = false;
   els.clearBanner.removeAttribute("hidden");
   const hold = prefersReducedMotion() ? 520 : (tetrok ? 980 : 780);
@@ -775,6 +820,45 @@ function showClearBanner(text, { tetrok = false, b2b = false } = {}) {
       els.clearBanner.classList.remove("is-out", "is-tetrok", "is-b2b");
     }, prefersReducedMotion() ? 40 : 280);
   }, hold);
+}
+
+function showLevelBanner(text) {
+  if (!els.clearBanner || !els.clearBannerText) return;
+  window.clearTimeout(clearBannerTimer);
+  window.clearTimeout(levelBannerTimer);
+  els.clearBannerText.textContent = text || "NÍVEL!";
+  els.clearBanner.classList.remove("is-tetrok", "is-b2b", "is-out");
+  els.clearBanner.classList.add("is-level");
+  els.clearBanner.hidden = false;
+  els.clearBanner.removeAttribute("hidden");
+  const hold = prefersReducedMotion() ? 480 : 900;
+  levelBannerTimer = window.setTimeout(() => {
+    els.clearBanner.classList.add("is-out");
+    levelBannerTimer = window.setTimeout(() => {
+      els.clearBanner.hidden = true;
+      els.clearBanner.setAttribute("hidden", "");
+      els.clearBanner.classList.remove("is-out", "is-level");
+    }, prefersReducedMotion() ? 40 : 280);
+  }, hold);
+}
+
+function pulseScorePop() {
+  const nodes = [els.scoreFloat, els.score, els.scoreRail].filter(Boolean);
+  for (const el of nodes) {
+    el.classList.remove("is-score-pop");
+    void el.offsetWidth;
+    el.classList.add("is-score-pop");
+  }
+  if (els.wrap) {
+    els.wrap.classList.remove("is-score-juice");
+    void els.wrap.offsetWidth;
+    els.wrap.classList.add("is-score-juice");
+  }
+  window.clearTimeout(scorePopTimer);
+  scorePopTimer = window.setTimeout(() => {
+    for (const el of nodes) el.classList.remove("is-score-pop");
+    if (els.wrap) els.wrap.classList.remove("is-score-juice");
+  }, prefersReducedMotion() ? 160 : 520);
 }
 
 function syncDanger(dt) {
@@ -810,7 +894,7 @@ function syncDanger(dt) {
   }
 }
 
-/** Flash/pop no poço ao limpar linha — sem animação se prefers-reduced-motion. */
+/** Flash/pop no poço ao limpar linha  -  sem animação se prefers-reduced-motion. */
 function flashBoardClear(count) {
   const el = els.wrap;
   if (!el) return;
@@ -883,7 +967,7 @@ function loop(now) {
 
 function handlePauseButton() {
   if (tutorialOpen || countingDown) return;
-  // Pausa só pausa/continua — não inicia partida (use Jogar / Espaço / Enter)
+  // Pausa só pausa/continua  -  não inicia partida (use Jogar / Espaço / Enter)
   if (game.state === STATE.READY || game.state === STATE.OVER) return;
   if (game.state === STATE.PAUSED) { requestResume(); return; }
   game.togglePause();
@@ -930,6 +1014,23 @@ function syncHud() {
     const c = game.combo || 0;
     els.comboFloat.textContent = c > 1 ? `x${c}` : "";
     if (els.comboWrap) els.comboWrap.hidden = c <= 1;
+  }
+  // Wave 5: medidor de combo (barra de streak)
+  if (els.comboMeter) {
+    const c = game.combo || 0;
+    const show = c > 1;
+    els.comboMeter.hidden = !show;
+    if (show) {
+      els.comboMeter.removeAttribute("hidden");
+      const pct = Math.min(100, Math.round((Math.min(c, 10) / 10) * 100));
+      if (els.comboMeterFill) els.comboMeterFill.style.width = `${pct}%`;
+      if (els.comboMeterLabel) els.comboMeterLabel.textContent = `x${c}`;
+      els.comboMeter.classList.toggle("is-hot", c >= 5);
+      els.comboMeter.classList.toggle("is-blaze", c >= 8);
+    } else {
+      els.comboMeter.setAttribute("hidden", "");
+      els.comboMeter.classList.remove("is-hot", "is-blaze");
+    }
   }
   if (els.bestFloat) els.bestFloat.textContent = String(best || 0);
   // Wave 3: barra de nível (linhas que faltam pro próximo NV)
@@ -1243,7 +1344,7 @@ function pulseHoldSlots() {
   }, prefersReducedMotion() ? 120 : 380);
 }
 
-/** Flash no poço ao hard-drop — reduzido se prefers-reduced-motion. */
+/** Flash no poço ao hard-drop  -  reduzido se prefers-reduced-motion. */
 function flashHardDrop(dropCells) {
   const el = els.wrap;
   if (!el) return;
