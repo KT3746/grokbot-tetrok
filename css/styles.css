@@ -1816,3 +1816,15 @@ body.theme-pixel .clear-banner.is-level span {
   }
   .combo-meter i { transition: none; }
 }
+
+/* Onda 6: confete, nota de recorde */
+.confetti-layer { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+.confetti-layer i { position: absolute; top: 38%; border-radius: 2px; opacity: 0; animation: confetti-fly 1.5s cubic-bezier(.2,.7,.4,1) forwards; }
+@keyframes confetti-fly {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0); }
+  35% { opacity: 1; transform: translate(calc(var(--dx) * .7), calc(var(--dy) * -.45)) rotate(calc(var(--r) * .5)); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--r)); }
+}
+.overlay-score .rec-note { grid-column: 1 / -1; margin: 8px 0 0; font-size: .95rem; font-weight: 700; color: #94a3b8; text-align: center; }
+.overlay-score .rec-note.is-new { color: #facc15; text-shadow: 0 0 12px rgba(250,204,21,.6); animation: rec-note-pop .5s ease-out; }
+@keyframes rec-note-pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
