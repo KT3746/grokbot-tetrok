@@ -1,8 +1,8 @@
-import { Game, STATE } from "./engine.js?v=202610070415";
-import { AudioEngine } from "./audio.js?v=202610070415";
-import { createRenderer } from "./renderer.js?v=202610070415";
-import { Input } from "./input.js?v=202610070415";
-import { LINES_PER_LEVEL } from "./pieces.js?v=202610070415";
+import { Game, STATE } from "./engine.js?v=202610142110";
+import { AudioEngine } from "./audio.js?v=202610142110";
+import { createRenderer } from "./renderer.js?v=202610142110";
+import { Input } from "./input.js?v=202610142110";
+import { LINES_PER_LEVEL } from "./pieces.js?v=202610142110";
 
 
 // iOS Safari: trava pinch / double-tap / scale (não dá pra "deszoomar" por JS)
@@ -386,6 +386,7 @@ const game = new Game({
     if (!hard) audio.lock();
     renderer.spawnLock(Boolean(hard), piece, dropCells || 0, fromY);
     if (hard) flashHardDrop(dropCells || 0);
+    runStats.pieces += 1;
   },
   onRotate: () => audio.rotate(),
   onHold: () => {
@@ -395,6 +396,9 @@ const game = new Game({
     syncHud();
   },
   onLineClear: ({ count, label, rows, combo, b2b, perfect, gained }) => {
+    if (count >= 4) runStats.tetroks += 1;
+    runStats.maxCombo = Math.max(runStats.maxCombo, combo || 0);
+    if (count >= 4 || perfect) confettiBurst(perfect ? 90 : 60);
     try { audio.lineClear(count, combo || 0); } catch (_) {}
     renderer.spawnClear(rows, game.board, count);
     flashBoardClear(count);
@@ -432,6 +436,7 @@ const game = new Game({
     syncHud();
   },
   onGameOver: (snap) => {
+    prevBest = best;
     if (snap.score > best) {
       best = snap.score;
       writeBest(best);
@@ -544,6 +549,10 @@ function cancelCountdown() {
   hideCountdown();
 }
 
+/* Onda 6: estatísticas da partida */
+let runStats = { tetroks: 0, maxCombo: 0, pieces: 0 };
+let prevBest = 0;
+
 function requestStart() {
   if (countingDown || tutorialOpen) return;
   if (game.state !== STATE.READY && game.state !== STATE.OVER) return;
@@ -551,6 +560,7 @@ function requestStart() {
   /* tabuleiro limpo atrás da contagem */
   if (game.state === STATE.OVER) { try { game.reset(); } catch (_) {} }
   hudScoreShown = game.score;
+  runStats = { tetroks: 0, maxCombo: 0, pieces: 0 };
   syncHud();
   hideOverlay();
   runCountdown(() => {
@@ -1168,7 +1178,20 @@ function showOverlay(title, text, again, score, extra) {
       `<span>Pontos</span><strong class="${newRec ? "is-new-rec" : ""}">${score}</strong>` +
       `<span>Recorde</span><strong>${best}</strong>` +
       `<span>Linhas</span><strong>${lines}</strong>` +
-      `<span>Nível</span><strong>${level}</strong>`;
+      `<span>Nível</span><strong>${level}</strong>` +
+      (again ? `<span>Tetroks</span><strong>${runStats.tetroks}</strong>` +
+      `<span>Combo máx</span><strong>${runStats.maxCombo > 1 ? "x" + runStats.maxCombo : "-"}</strong>` : "");
+    if (again) {
+      countUp(els.overlayScore.querySelector("strong"), score);
+      const note = document.createElement("p");
+      const beat = score > prevBest && score > 0;
+      note.className = "rec-note" + (beat ? " is-new" : "");
+      note.textContent = beat
+        ? (prevBest > 0 ? `NOVO RECORDE! +${score - prevBest} acima do antigo` : "NOVO RECORDE!")
+        : `Faltaram ${Math.max(0, best - score)} pontos pro recorde`;
+      els.overlayScore.appendChild(note);
+      if (beat) confettiBurst(110);
+    }
     renderDailyBanner(!!(extra && extra.dailyHit), true);
   } else if (!again) {
     /* start/pause: daily banner handled by caller */
@@ -1388,4 +1411,34 @@ function writeHowToSeen() {
   } catch {
     /* ignore */
   }
+}
+
+/* ---------- Onda 6: confete e contagem do placar ---------- */
+function confettiBurst(n = 60) {
+  if (prefersReducedMotion()) return;
+  const layer = document.createElement("div");
+  layer.className = "confetti-layer";
+  const colors = ["#22d3ee", "#facc15", "#f472b6", "#a3e635", "#fb923c", "#a78bfa"];
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement("i");
+    const dx = (Math.random() - 0.5) * 120;
+    c.style.cssText = `left:${50 + (Math.random() - 0.5) * 30}%;background:${colors[i % colors.length]};` +
+      `--dx:${dx}vw;--dy:${40 + Math.random() * 60}vh;--r:${Math.random() * 900 - 450}deg;` +
+      `animation-delay:${Math.random() * 120}ms;width:${6 + Math.random() * 6}px;height:${8 + Math.random() * 8}px`;
+    layer.appendChild(c);
+  }
+  document.body.appendChild(layer);
+  window.setTimeout(() => layer.remove(), 1700);
+}
+
+function countUp(el, target) {
+  if (!el || prefersReducedMotion() || target <= 0) return;
+  const t0 = performance.now();
+  const dur = Math.min(1200, 400 + target / 20);
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / dur);
+    el.textContent = String(Math.round(target * (1 - Math.pow(1 - k, 3))));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }

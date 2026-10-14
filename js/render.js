@@ -1,6 +1,6 @@
-import { COLS, ROWS, HIDDEN, PIECES, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202610070415";
-import { ghostY } from "./engine.js?v=202610070415";
-import { skinColors, skinStyle } from "./skins.js?v=202610070415";
+import { COLS, ROWS, HIDDEN, PIECES, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202610142110";
+import { ghostY } from "./engine.js?v=202610142110";
+import { skinColors, skinStyle } from "./skins.js?v=202610142110";
 const MAX_DPR = 2.75;
 
 /** Canvas 2D  -  visual clássico e fallback se WebGL/Three.js falhar. */
