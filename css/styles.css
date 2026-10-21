@@ -776,6 +776,9 @@ body.theme-pixel .float-box {
   font-size: 1.25rem;
   color: #67e8f9;
 }
+/* display:grid acima anulava o [hidden]: barra vazia sob o tagline no início sem recorde */
+.overlay-score[hidden],
+.overlay-score:empty { display: none !important; }
 #board {
   transition: box-shadow 0.25s ease;
 }

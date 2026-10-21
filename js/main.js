@@ -1,8 +1,8 @@
-import { Game, STATE } from "./engine.js?v=202610142110";
-import { AudioEngine } from "./audio.js?v=202610142110";
-import { createRenderer } from "./renderer.js?v=202610142110";
-import { Input } from "./input.js?v=202610142110";
-import { LINES_PER_LEVEL } from "./pieces.js?v=202610142110";
+import { Game, STATE } from "./engine.js?v=202610211950";
+import { AudioEngine } from "./audio.js?v=202610211950";
+import { createRenderer } from "./renderer.js?v=202610211950";
+import { Input } from "./input.js?v=202610211950";
+import { LINES_PER_LEVEL } from "./pieces.js?v=202610211950";
 
 
 // iOS Safari: trava pinch / double-tap / scale (não dá pra "deszoomar" por JS)

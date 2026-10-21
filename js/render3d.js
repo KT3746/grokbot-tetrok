@@ -4,10 +4,10 @@
  * Preview NEXT/HOLD continua no Canvas 2D (legível em miniatura).
  */
 import * as THREE from "three";
-import { COLS, ROWS, HIDDEN, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202610142110";
-import { ghostY } from "./engine.js?v=202610142110";
-import { skinColors } from "./skins.js?v=202610142110";
-import { CanvasRenderer } from "./render.js?v=202610142110";
+import { COLS, ROWS, HIDDEN, cellsOf, LOCK_DELAY_MS } from "./pieces.js?v=202610211950";
+import { ghostY } from "./engine.js?v=202610211950";
+import { skinColors } from "./skins.js?v=202610211950";
+import { CanvasRenderer } from "./render.js?v=202610211950";
 
 const CELL = 1;
 const BOX = 0.86;
