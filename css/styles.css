@@ -1831,3 +1831,42 @@ body.theme-pixel .clear-banner.is-level span {
 .overlay-score .rec-note { grid-column: 1 / -1; margin: 8px 0 0; font-size: .95rem; font-weight: 700; color: #94a3b8; text-align: center; }
 .overlay-score .rec-note.is-new { color: #facc15; text-shadow: 0 0 12px rgba(250,204,21,.6); animation: rec-note-pop .5s ease-out; }
 @keyframes rec-note-pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
+
+/* ===== Wave 7: pular contagem, faltam N!, HOLD nudge ===== */
+#countdown { cursor: pointer; }
+#countdown::after {
+  content: "toque pra pular";
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  transform: translateX(-50%);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(224, 242, 254, 0.75);
+  white-space: nowrap;
+  pointer-events: none;
+}
+#countdown.is-go::after { content: ""; }
+.lvl-left.is-near {
+  color: #fde68a;
+  animation: lvl-near-pulse 0.9s ease-in-out infinite;
+  font-weight: 800;
+  text-shadow: 0 0 12px rgba(253, 230, 138, 0.55);
+}
+@keyframes lvl-near-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.78; transform: scale(1.04); }
+}
+.hold-slot.is-nudge {
+  animation: hold-nudge 1.1s ease-in-out infinite;
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.55), 0 0 18px rgba(34, 211, 238, 0.35);
+}
+@keyframes hold-nudge {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lvl-left.is-near, .hold-slot.is-nudge { animation: none; }
+  #countdown::after { content: ""; }
+}
