@@ -1,8 +1,8 @@
-import { Game, STATE } from "./engine.js?v=202610211950";
-import { AudioEngine } from "./audio.js?v=202610211950";
-import { createRenderer } from "./renderer.js?v=202610211950";
-import { Input } from "./input.js?v=202610211950";
-import { LINES_PER_LEVEL } from "./pieces.js?v=202610211950";
+import { Game, STATE } from "./engine.js?v=202611091241";
+import { AudioEngine } from "./audio.js?v=202611091241";
+import { createRenderer } from "./renderer.js?v=202611091241";
+import { Input } from "./input.js?v=202611091241";
+import { LINES_PER_LEVEL } from "./pieces.js?v=202611091241";
 
 
 // iOS Safari: trava pinch / double-tap / scale (não dá pra "deszoomar" por JS)
@@ -514,6 +514,7 @@ function runCountdown(done, { short = false } = {}) {
   clearCountdownTimers();
   if (!els.countdown || !els.countdownNum) { done(); return; }
   countingDown = true;
+  countdownDone = done;
   const steps = short ? ["3", "2", "1"] : ["3", "2", "1", "VAI!"];
   const stepMs = prefersReducedMotion() ? 320 : short ? 340 : 420;
   els.countdown.classList.remove("is-out");
@@ -533,6 +534,7 @@ function runCountdown(done, { short = false } = {}) {
   });
   countdownTimers.push(window.setTimeout(() => {
     countingDown = false;
+    countdownDone = null;
     done();
     /* "VAI!" some logo depois da peça começar a cair */
     els.countdown.classList.add("is-out");
@@ -546,7 +548,32 @@ function cancelCountdown() {
   if (!countingDown) return;
   clearCountdownTimers();
   countingDown = false;
+  countdownDone = null;
   hideCountdown();
+}
+
+/* Onda 7: toque/tecla pula a contagem 3-2-1 */
+let countdownDone = null;
+function skipCountdownNow() {
+  if (!countingDown || !countdownDone) return false;
+  const done = countdownDone;
+  countdownDone = null;
+  clearCountdownTimers();
+  countingDown = false;
+  if (els.countdown && els.countdownNum) {
+    els.countdownNum.textContent = "VAI!";
+    els.countdown.classList.add("is-go", "is-tick");
+    els.countdown.classList.remove("is-out");
+    els.countdown.hidden = false;
+    els.countdown.removeAttribute("hidden");
+  }
+  try { audio.countTick(true); } catch (_) {}
+  if (navigator.vibrate) { try { navigator.vibrate(14); } catch (_) {} }
+  done();
+  window.setTimeout(() => {
+    if (!countingDown) hideCountdown();
+  }, 220);
+  return true;
 }
 
 /* Onda 6: estatísticas da partida */
@@ -935,6 +962,22 @@ if (els.tipToast) {
   });
 }
 
+/* Onda 7: pular contagem com toque no poço / Espaço / Enter */
+if (els.countdown) {
+  els.countdown.addEventListener("pointerdown", (ev) => {
+    if (!countingDown) return;
+    ev.preventDefault();
+    skipCountdownNow();
+  });
+}
+window.addEventListener("keydown", (ev) => {
+  if (!countingDown) return;
+  if (ev.key === " " || ev.key === "Enter" || ev.key === "Escape") {
+    ev.preventDefault();
+    skipCountdownNow();
+  }
+}, true);
+
 bootScreen();
 layout();
 syncHud();
@@ -1050,6 +1093,16 @@ function syncHud() {
     if (els.lvlFill) els.lvlFill.style.width = `${Math.round((into / LINES_PER_LEVEL) * 100)}%`;
     set(els.lvlLeftN, String(left));
     set(els.lvlNext, String((game.level || 1) + 1));
+    // Onda 7: "Faltam N!" pisca perto do próximo nível
+    const lvlLeft = document.getElementById("lvl-left");
+    const near = (game.state === STATE.PLAYING || game.state === STATE.CLEARING) && left <= 3;
+    if (lvlLeft) {
+      lvlLeft.classList.toggle("is-near", near);
+      if (near && left <= 3) {
+        const n = lvlLeft.querySelector("b#lvl-left-n");
+        /* texto já atualizado; classe cuida do aviso visual */
+      }
+    }
   }
   // Wave 3: perseguição de recorde ao vivo
   if (els.chase) {
@@ -1074,6 +1127,10 @@ function syncHud() {
   const empty = !game.hold;
   if (els.holdSlot) els.holdSlot.classList.toggle("is-empty", empty);
   if (els.holdSlotFloat) els.holdSlotFloat.classList.toggle("is-empty", empty);
+  // Onda 7: HOLD pisca se ainda vazio depois de algumas peças
+  const nudgeHold = empty && runStats.pieces >= 3 && (game.state === STATE.PLAYING || game.state === STATE.CLEARING);
+  if (els.holdSlot) els.holdSlot.classList.toggle("is-nudge", nudgeHold);
+  if (els.holdSlotFloat) els.holdSlotFloat.classList.toggle("is-nudge", nudgeHold);
 }
 
 function bootScreen() {
