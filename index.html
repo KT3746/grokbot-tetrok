@@ -13,15 +13,15 @@
     <meta property="og:description" content="Arcade original, em português, para jogar no celular e no computador." />
     <meta property="og:type" content="website" />
     <title>TETROK</title>
-    <link rel="icon" href="assets/favicon.svg?v=202611091241" type="image/svg+xml" />
+    <link rel="icon" href="assets/favicon.svg?v=202611122359" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Nunito:wght@700;800;900&family=Press+Start+2P&family=Sora:wght@600;700;800&family=VT323&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/styles.css?v=202611091241" />
+    <link rel="stylesheet" href="css/styles.css?v=202611122359" />
     <script type="importmap">
     {
       "imports": {
-        "three": "./js/vendor/three.module.js?v=202611091241"
+        "three": "./js/vendor/three.module.js?v=202611122359"
       }
     }
     </script>
@@ -39,7 +39,7 @@
             <div class="chip"><span class="lbl-level">NV</span><strong id="stat-level">1</strong></div>
           </div>
           <div class="strip-next">
-            <span class="lbl-next">NEXT</span>
+            <span class="lbl-next">PRÓXIMA</span>
             <canvas id="next-strip" width="56" height="56" aria-label="Próxima peça"></canvas>
           </div>
         </div>
@@ -96,7 +96,7 @@
                   <span class="hold-empty">＋</span>
                 </button>
                 <div class="float-box next-box next-stack" id="next-float-box">
-                  <span class="lbl-next">NEXT</span>
+                  <span class="lbl-next">PRÓXIMA</span>
                   <div class="next-stack-row">
                     <canvas id="next-float" width="64" height="64" aria-label="Próxima"></canvas>
                     <canvas id="next-float-1" width="48" height="48" aria-label="Seguinte"></canvas>
@@ -114,7 +114,7 @@
             <span class="hold-empty">＋</span>
           </button>
           <div class="rail-box rail-queue" id="next-queue">
-            <span class="lbl-next">NEXT</span>
+            <span class="lbl-next">PRÓXIMA</span>
             <canvas id="next-0" width="64" height="48" aria-hidden="true"></canvas>
             <canvas id="next-1" width="64" height="48" aria-hidden="true"></canvas>
             <canvas id="next-side" width="64" height="64" aria-label="Próxima peça"></canvas>
@@ -152,9 +152,14 @@
       <p class="desk-hint">PC: ←→ mover · ↑ girar · ↓ descer · Espaço queda · P pausa · Celular: deslize · toque gira · swipe ↑ queda</p>
     </div>
 
-    <div id="tip-toast" class="tip-toast" hidden role="status" aria-live="polite">
-      <p><strong>1º minuto:</strong> deslize ◀▶ pra mover · toque pra girar · puxe ▼ pra descer (soft-drop). Swipe ↑ = queda rápida.</p>
-      <button type="button" id="btn-tip-dismiss" class="tip-dismiss" aria-label="Dispensar dica">Entendi</button>
+    <div id="tip-toast" class="tip-toast is-steps" hidden role="status" aria-live="polite">
+      <p class="tip-head"><strong>1º minuto</strong> · faça os 3</p>
+      <ul class="tip-steps">
+        <li data-step="move"><i aria-hidden="true"></i><b>Mover</b> <span data-touch="deslize ◀▶" data-keys="← →">deslize ◀▶</span></li>
+        <li data-step="rot"><i aria-hidden="true"></i><b>Girar</b> <span data-touch="toque" data-keys="↑ ou X">toque</span></li>
+        <li data-step="hard"><i aria-hidden="true"></i><b>Cair</b> <span data-touch="arraste ↑" data-keys="Espaço">arraste ↑</span></li>
+      </ul>
+      <button type="button" id="btn-tip-dismiss" class="tip-dismiss" aria-label="Dispensar dica">✕</button>
     </div>
 
     <div id="howto" class="overlay howto" hidden role="dialog" aria-modal="true" aria-labelledby="howto-title">
@@ -198,6 +203,6 @@
       </div>
     </div>
 
-    <script type="module" src="js/main.js?v=202611091241"></script>
+    <script type="module" src="js/main.js?v=202611122359"></script>
   </body>
 </html>

@@ -1,8 +1,8 @@
-import { Game, STATE } from "./engine.js?v=202611091241";
-import { AudioEngine } from "./audio.js?v=202611091241";
-import { createRenderer } from "./renderer.js?v=202611091241";
-import { Input } from "./input.js?v=202611091241";
-import { LINES_PER_LEVEL } from "./pieces.js?v=202611091241";
+import { Game, STATE } from "./engine.js?v=202611122359";
+import { AudioEngine } from "./audio.js?v=202611122359";
+import { createRenderer } from "./renderer.js?v=202611122359";
+import { Input } from "./input.js?v=202611122359";
+import { LINES_PER_LEVEL } from "./pieces.js?v=202611122359";
 
 
 // iOS Safari: trava pinch / double-tap / scale (não dá pra "deszoomar" por JS)
@@ -360,6 +360,7 @@ const game = new Game({
     showTipForFirstMinute();
   },
   onPause: () => {
+    if (els.tipToast && !els.tipToast.hidden) dismissTip(false);
     try { audio.pause(); } catch (_) {}
     try { audio.suspend(); } catch (_) {}
     showOverlay("Pausa", "Cafézinho? Quando quiser, bora de novo.", false);
@@ -377,6 +378,7 @@ const game = new Game({
   onResume: () => {
     try { audio.resume(); } catch (_) {}
     hideOverlay();
+    showTipForFirstMinute();
     els.btnPause.setAttribute("aria-pressed", "false");
     els.btnPause.setAttribute("aria-label", "Pausar");
     els.btnPause.title = "Pausar";
@@ -436,6 +438,7 @@ const game = new Game({
     syncHud();
   },
   onGameOver: (snap) => {
+    gameOverAt = performance.now();
     prevBest = best;
     if (snap.score > best) {
       best = snap.score;
@@ -449,8 +452,9 @@ const game = new Game({
           ? "Ritmo bom. Agora busca limpeza e combo."
           : snap.score < 5000
             ? "Pressão alta. Você joga limpo."
-            : "Élite. Isso aqui já é vitrine.";
+            : "Elite. Isso aqui já é vitrine.";
     // overlay primeiro: audio não pode bloquear o fim de jogo
+    dismissTip(false); /* onda 8: dica nunca cobre o "Jogar de novo" */
     showOverlay("Fim de jogo", roast, true, snap.score, {
       lines: snap.lines || game.lines || 0,
       level: snap.level || game.level || 1,
@@ -482,7 +486,7 @@ const input = new Input(game, audio, {
   boardEl: els.wrap || els.board,
   buttons,
   isBlocked: () => tutorialOpen || countingDown || document.hidden,
-  onAction: () => dismissTip(true),
+  onAction: (action) => markTipStep(action),
   onStartRequest: () => requestStart(),
   onGestureFx: (kind, x, y) => touchFx(kind, x, y),
 });
@@ -580,9 +584,12 @@ function skipCountdownNow() {
 let runStats = { tetroks: 0, maxCombo: 0, pieces: 0 };
 let prevBest = 0;
 
+let gameOverAt = 0;
 function requestStart() {
   if (countingDown || tutorialOpen) return;
   if (game.state !== STATE.READY && game.state !== STATE.OVER) return;
+  /* onda 8: quem estava martelando Espaço no fim não reinicia sem ver o placar */
+  if (game.state === STATE.OVER && performance.now() - gameOverAt < 900) return;
   audio.unlock();
   /* tabuleiro limpo atrás da contagem */
   if (game.state === STATE.OVER) { try { game.reset(); } catch (_) {} }
@@ -816,9 +823,41 @@ function showTipIfNeeded() {
     els.tipToast.setAttribute("hidden", "");
   }
 }
-/** Tip PT-BR no 1º minuto: some na 1ª ação ou após ~60s; localStorage uma vez. */
+/** Tip PT-BR no 1º minuto: some ao completar os 3 gestos, no ✕ ou após ~60s; localStorage uma vez. */
+/* Onda 8: dica do 1º minuto vira checklist (mover/girar/cair) que se marca sozinho */
+const tipDone = new Set();
+let tipTextsSet = false;
+function usesTouch() {
+  try {
+    return window.matchMedia("(hover: none) and (pointer: coarse)").matches || (navigator.maxTouchPoints > 0 && window.innerWidth < 900);
+  } catch { return false; }
+}
+function setTipTexts() {
+  if (!els.tipToast || tipTextsSet) return;
+  tipTextsSet = true;
+  const touch = usesTouch();
+  els.tipToast.querySelectorAll("[data-touch]").forEach((el) => {
+    el.textContent = touch ? el.dataset.touch : el.dataset.keys;
+  });
+}
+function markTipStep(action) {
+  if (!els.tipToast || els.tipToast.hidden) return;
+  const step = action === "left" || action === "right" ? "move"
+    : action === "rotR" || action === "rotL" ? "rot"
+    : action === "hard" ? "hard" : "";
+  if (!step || tipDone.has(step)) return;
+  tipDone.add(step);
+  const li = els.tipToast.querySelector(`[data-step="${step}"]`);
+  if (li) li.classList.add("is-done");
+  if (tipDone.size >= 3) {
+    els.tipToast.classList.add("is-all");
+    window.clearTimeout(tipTimer);
+    tipTimer = window.setTimeout(() => dismissTip(true), 1100);
+  }
+}
 function showTipForFirstMinute() {
   if (!els.tipToast || readTipSeen()) return;
+  setTipTexts();
   els.tipToast.hidden = false;
   els.tipToast.removeAttribute("hidden");
   window.clearTimeout(tipTimer);
@@ -1222,7 +1261,7 @@ function showOverlay(title, text, again, score, extra) {
   }
   const themeLab = document.getElementById("theme-label-ui");
   if (themeLab) themeLab.hidden = !!again;
-  els.btnPlay.textContent = again ? "Jogar de novo" : game.state === STATE.PAUSED ? "Continuar" : "Jogar";
+  els.btnPlay.textContent = again ? (usesTouch() ? "Jogar de novo" : "Jogar de novo · Enter") : game.state === STATE.PAUSED ? "Continuar" : "Jogar";
   if (els.btnHomeOverlay) {
     els.btnHomeOverlay.hidden = !(again || game.state === STATE.PAUSED);
   }
@@ -1393,7 +1432,7 @@ function renderDailyBanner(highlight, forceShow) {
   els.overlayDaily.hidden = false;
   els.overlayDaily.removeAttribute("hidden");
   els.overlayDaily.classList.toggle("is-hit", !!highlight);
-  const tip = highlight ? "Novo recorde de hoje! " : "";
+  const tip = highlight ? "Novo recorde · " : "";
   els.overlayDaily.innerHTML =
     `<span class="daily-label">${tip}Hoje (BRT)</span>` +
     `<strong>${daily.score || 0}</strong> pts · ` +
