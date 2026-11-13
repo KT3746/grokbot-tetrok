@@ -1870,3 +1870,46 @@ body.theme-pixel .clear-banner.is-level span {
   .lvl-left.is-near, .hold-slot.is-nudge { animation: none; }
   #countdown::after { content: ""; }
 }
+
+/* ===== Onda 8 ===== */
+/* [hidden] precisa vencer display:grid/block (seletor de visual aparecia no fim de jogo e empurrava o "Jogar de novo") */
+.theme-picker[hidden], .picker-label[hidden], #btn-home-overlay[hidden] { display: none !important; }
+/* dica do 1º minuto: checklist compacto no topo, longe da pilha */
+.tip-toast.is-steps {
+  top: calc(env(safe-area-inset-top, 0px) + 66px);
+  bottom: auto;
+  width: min(230px, calc(100% - 224px));
+  min-width: 150px;
+  padding: 8px 10px 8px 12px;
+  gap: 4px;
+  border-radius: 12px;
+  pointer-events: auto;
+  transition: border-color .2s ease, box-shadow .2s ease, opacity .3s ease;
+}
+.tip-toast.is-steps .tip-head { font-size: 0.7rem; padding-right: 26px; }
+.tip-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.tip-steps li { display: flex; align-items: center; gap: 6px; font-size: 0.74rem; color: #cbd5e1; line-height: 1.25; }
+.tip-steps li b { color: #e0f2fe; font-weight: 800; min-width: 3.6em; }
+.tip-steps li span { opacity: .9; white-space: nowrap; }
+.tip-steps li i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(103,232,249,.55); flex: 0 0 auto; display: grid; place-items: center; font-style: normal; font-size: 10px; }
+.tip-steps li.is-done { color: #86efac; }
+.tip-steps li.is-done b { color: #86efac; text-decoration: line-through; text-decoration-thickness: 2px; }
+.tip-steps li.is-done i { background: #22c55e; border-color: #22c55e; animation: tipPop .35s ease; }
+.tip-steps li.is-done i::after { content: "✓"; color: #04130a; font-weight: 900; }
+.tip-toast.is-all { border-color: rgba(34,197,94,.8); box-shadow: 0 0 24px rgba(34,197,94,.35); }
+.tip-toast.is-steps .tip-dismiss {
+  position: absolute; top: 2px; right: 2px; min-height: 32px; width: 32px; padding: 0;
+  border-radius: 50%; font-size: 0.8rem; letter-spacing: 0; background: transparent; border-color: transparent;
+}
+@keyframes tipPop { 0% { transform: scale(.4); } 70% { transform: scale(1.25); } 100% { transform: scale(1); } }
+@media (orientation: landscape) and (max-height: 520px) {
+  .tip-toast.is-steps { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); left: calc(env(safe-area-inset-left, 0px) + 12px); transform: none; width: min(250px, 30vw); }
+}
+@media (prefers-reduced-motion: reduce) { .tip-steps li.is-done i { animation: none; } }
+.tip-toast.is-steps .tip-head { white-space: nowrap; }
+@media (max-width: 380px) {
+  .tip-toast.is-steps { padding: 6px 8px 6px 10px; gap: 2px; top: calc(env(safe-area-inset-top, 0px) + 60px); }
+  .tip-toast.is-steps .tip-head { font-size: 0.64rem; }
+  .tip-steps li { font-size: 0.68rem; gap: 5px; }
+  .tip-steps li b { min-width: 3.3em; }
+}

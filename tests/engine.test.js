@@ -62,10 +62,10 @@ describe("linhas", () => {
   });
 
   it("nomeia as limpezas em português", () => {
-    assert.equal(lineLabel(1), "Linha!");
-    assert.equal(lineLabel(2), "Dupla!");
-    assert.equal(lineLabel(3), "Tripla!");
-    assert.equal(lineLabel(4), "Queda Certa!");
+    assert.equal(lineLabel(1), "Boa!");
+    assert.equal(lineLabel(2), "Dupla top!");
+    assert.equal(lineLabel(3), "Tripla louca!");
+    assert.equal(lineLabel(4), "TETROK!!!");
   });
 });
 
@@ -91,10 +91,11 @@ describe("partida", () => {
     game.start();
     game.board = emptyBoard();
     fillRow(game.board, TOTAL_ROWS - 1);
+    game.board[TOTAL_ROWS - 6][0] = { id: "viga" }; /* sobra bloco: não é limpeza total */
     game.beginClear([TOTAL_ROWS - 1]);
     assert.equal(game.score, LINE_POINTS[1]);
     assert.equal(game.lines, 1);
-    assert.equal(game.lastClearLabel, "Linha!");
+    assert.equal(game.lastClearLabel, "Boa!");
 
     game.lines = 10;
     game.level = 2;
@@ -102,6 +103,8 @@ describe("partida", () => {
     game.combo = 0;
     game.board = emptyBoard();
     for (let i = 0; i < 4; i++) fillRow(game.board, TOTAL_ROWS - 1 - i);
+    game.board[TOTAL_ROWS - 8][0] = { id: "viga" };
+    game.lastDifficult = false;
     game.beginClear([
       TOTAL_ROWS - 1,
       TOTAL_ROWS - 2,
@@ -109,7 +112,7 @@ describe("partida", () => {
       TOTAL_ROWS - 4,
     ]);
     assert.equal(game.score, LINE_POINTS[4] * 2);
-    assert.equal(game.lastClearLabel, "Queda Certa!");
+    assert.equal(game.lastClearLabel, "TETROK!!!");
     assert.equal(game.level, 2);
 
     game.lines = 9;
@@ -125,6 +128,7 @@ describe("partida", () => {
   it("combo soma bônus só em limpezas seguidas", () => {
     const game = new Game({}, () => 0);
     game.start();
+    game.board[TOTAL_ROWS - 6][0] = { id: "viga" };
     game.beginClear([TOTAL_ROWS - 1]);
     const afterFirst = game.score;
     game.state = STATE.PLAYING;
